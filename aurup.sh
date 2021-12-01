@@ -1,108 +1,78 @@
 #!\bin\bash
-#Update Package AUR 1.0.0-alpha02
+#Update Package AUR
 
-clear
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha02"
+version="1.0.0-alpha03"
 
-echo "##################################################################################################"
-echo "#                                                                                                #"
-echo "#                               Atualizador de Pacotes da AUR                                    #"
-echo "#                                    Versão $version                                        #"
-echo "#                                                                                                #"
-echo "##################################################################################################"
+function printError {
+	echo "opção inválida, consulte o manual com o comando aurup --help"
+	echo ""
+}
+
+function printManual {
+	echo "uso:  aurup <operação> [...]"
+	echo "operações:"
+	echo "aurup {-S  --sync   } [package name]"
+	echo "aurup {-R  --remove } [package name]"
+	echo "aurup {-Ss --search } [package name]"
+	echo "aurup {-L  --list   }"
+	echo "aurup {-h  --help   }"
+	echo "aurup {-V  --version}"
+	echo ""
+}
+
+function printVersion {
+	echo "aurup $version"
+	echo "copyright (C) 2020-2021 Vieirateam Developers"
+	echo "este é um software livre: você é livre para alterá-lo e redistribuí-lo."
+	echo "saiba mais em https://github.com/wellintonvieira/aurup "
+	echo ""
+}
 
 if [[ "$option" == "--list" || "$option" == "-L" ]];
 then
-	echo ""
 	sudo pacman -Qqm
-	echo ""
 elif [[ "$option" == "--sync" || "$option" == "-S" ]];
 then
 	url="$(curl -Is "https://aur.archlinux.org/packages/$package/" | head -1)"
 	condition=( $url )
 	if [[ "$package" == "" ]]; then
-		echo ""
-		echo ":: Opção inválida, consulte o manual com aurup --help..."
-		echo ""
+		printError
 	elif [ ${condition[-2]} == "200" ]; then
-		echo ""
 		sudo mount -o remount,size=10G /tmp
-		echo ""
-		echo ":: Pesquisando o pacote no repositório AUR..."
-		sleep 1s
-		echo ""
 		wget -q "https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 		tar -xzf "$package.tar.gz"
 		cd "$package"
 		makepkg -m -c -si --needed --noconfirm
 		sudo rm -rf "/tmp/$package"
 		sudo rm -rf "/tmp/$package.tar.gz"
-		echo ""
+		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 	else
-		echo ""
-		echo ":: Pacote não existe no repositório AUR..."
-		sleep 1s
-		echo ""
+		echo "pacote não existe no repositório AUR"
 	fi	
 elif [[ "$option" == "--remove" || "$option" == "-R" ]]; 
 then
 	if [[ "$package" == "" ]]; then
-		echo ""
-		echo ":: Opção inválida, consulte o manual com aurup --help..."
-		echo ""
+		printError
 	else
-		echo ""
-		echo ":: Removendo pacote do computador..."
-		sleep 1s
-		echo ""
 		sudo pacman -R "$package"
-		echo ""
 	fi
 elif [[ "$option" == "--help" || "$option" == "-h" ]]; 
 then
-	echo "#                                                                                                #"
-	echo "#    Comando          Atalho          Função                                                     #"
-	echo "#                                                                                                #"
-	echo "#    --sync           -S              instalar um pacote da AUR                                  #"
-	echo "#    --remove         -R              remover um pacote instalado da AUR                         #"
-	echo "#    --search         -Ss             pesquisa um pacote da AUR                                  #"
-	echo "#    --list           -L              listar os pacotes instalados da AUR                        #"
-	echo "#    --help           -h              visualizar o manual do aurup                               #"
-	echo "#    --version        -V              consultar a versão do aurup                                #"
-	echo "#                                                                                                #"
+	printManual
 elif [[ "$option" == "--search" || "$option" == "-Ss" ]];
 then
 	if [[ "$package" == "" ]]; then
-		echo ""
-		echo ":: Opção inválida, consulte o manual com aurup --help..."
-		echo ""
+		printError
 	else
-		echo ""
 		url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
 		w3m -dump $url | grep $package | sed "1 d"
-		echo ""
 	fi
 elif [[ "$option" == "--version" || "$option" == "-V" ]]; 
 then
-	echo ""
-	echo ":: aurup $version"
-	echo ":: Copyright (C) 2020 Free Software Foundation, Inc."
-	echo ":: Licença GPLv3+: GNU GPL versão 3 ou posterior <https://gnu.org/licenses/gpl.html>"
-	echo ":: Este é um software livre: você é livre para alterá-lo e redistribuí-lo."
-	echo ":: NÃO HÁ QUALQUER GARANTIA, na máxima extensão permitida em lei."
-	echo ":: Escrito por Wellinton Vieira dos Santos."
-	echo ":: Saiba mais em https://github.com/wellintonvieira/aurup "
-	echo ""
+	printVersion
 else
-	echo ""
-	echo ":: Opção inválida, consulte o manual com aurup --help..."
-	echo ""
+	printError
 fi
-echo "##################################################################################################"
-echo ""
-read -rsp $':: Pressione qualquer tecla para concluir...' -n1 key
-echo ""
-echo ""
