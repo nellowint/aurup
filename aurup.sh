@@ -4,7 +4,7 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha03"
+version="1.0.0-alpha04"
 
 function printError {
 	echo "opção inválida, consulte o manual com o comando aurup --help"
@@ -31,9 +31,15 @@ function printVersion {
 	echo ""
 }
 
+function searchPackage {
+	url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
+	echo "listando pacotes semelhantes a pesquisa: $package"
+	w3m -dump $url | grep $package | sed "1 d"
+}
+
 if [[ "$option" == "--list" || "$option" == "-L" ]];
 then
-	sudo pacman -Qqm
+	sudo pacman -Qm
 elif [[ "$option" == "--sync" || "$option" == "-S" ]];
 then
 	url="$(curl -Is "https://aur.archlinux.org/packages/$package/" | head -1)"
@@ -67,8 +73,14 @@ then
 	if [[ "$package" == "" ]]; then
 		printError
 	else
-		url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
-		w3m -dump $url | grep $package | sed "1 d"
+		sudo pacman -Qs w3m > /tmp/aurup.txt
+		if [ -s /tmp/aurup.txt ]; then
+			searchPackage
+		else
+			sudo pacman -S w3m --noconfirm
+			searchPackage
+		fi
+		sudo rm /tmp/aurup.txt
 	fi
 elif [[ "$option" == "--version" || "$option" == "-V" ]]; 
 then
