@@ -4,7 +4,7 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha04"
+version="1.0.0-alpha05"
 
 function printError {
 	echo "opção inválida, consulte o manual com o comando aurup --help"
@@ -33,8 +33,9 @@ function printVersion {
 
 function searchPackage {
 	url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
-	echo "listando pacotes semelhantes a pesquisa: $package"
-	w3m -dump $url | grep $package | sed "1 d"
+	w3m -dump $url | sed -n "/^$package/p" & 
+	echo "listando pacotes semelhantes a pesquisa: $package" 
+	wait
 }
 
 if [[ "$option" == "--list" || "$option" == "-L" ]];
@@ -44,7 +45,7 @@ elif [[ "$option" == "--sync" || "$option" == "-S" ]];
 then
 	url="$(curl -Is "https://aur.archlinux.org/packages/$package/" | head -1)"
 	condition=( $url )
-	if [[ "$package" == "" ]]; then
+	if [[ "$package" == "" || "$package" == " " ]]; then
 		printError
 	elif [ ${condition[-2]} == "200" ]; then
 		sudo mount -o remount,size=10G /tmp
@@ -60,7 +61,7 @@ then
 	fi	
 elif [[ "$option" == "--remove" || "$option" == "-R" ]]; 
 then
-	if [[ "$package" == "" ]]; then
+	if [[ "$package" == "" || "$package" == " " ]]; then
 		printError
 	else
 		sudo pacman -R "$package"
@@ -70,7 +71,7 @@ then
 	printManual
 elif [[ "$option" == "--search" || "$option" == "-Ss" ]];
 then
-	if [[ "$package" == "" ]]; then
+	if [[ "$package" == "" || "$package" == " " ]]; then
 		printError
 	else
 		sudo pacman -Qs w3m > /tmp/aurup.txt
