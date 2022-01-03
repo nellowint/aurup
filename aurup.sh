@@ -4,16 +4,16 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha05"
+version="1.0.0-alpha07"
 
 function printError {
-	echo "opção inválida, consulte o manual com o comando aurup --help"
+	echo "invalid option, consult manual with command aurup --help"
 	echo ""
 }
 
 function printManual {
-	echo "uso:  aurup <operação> [...]"
-	echo "operações:"
+	echo "use:  aurup <operation> [...]"
+	echo "operations:"
 	echo "aurup {-S  --sync   } [package name]"
 	echo "aurup {-R  --remove } [package name]"
 	echo "aurup {-Ss --search } [package name]"
@@ -25,16 +25,16 @@ function printManual {
 
 function printVersion {
 	echo "aurup $version"
-	echo "copyright (C) 2020-2021 Vieirateam Developers"
-	echo "este é um software livre: você é livre para alterá-lo e redistribuí-lo."
-	echo "saiba mais em https://github.com/wellintonvieira/aurup "
+	echo "copyright (C) 2019-2022 Vieirateam Developers"
+	echo "this is free software: you are free to change and redistribute it."
+	echo "learn more at https://github.com/wellintonvieira/aurup "
 	echo ""
 }
 
 function searchPackage {
 	url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
 	w3m -dump $url | sed -n "/^$package/p" & 
-	echo "listando pacotes semelhantes a pesquisa: $package" 
+	echo "listing similar packages to search: $package" 
 	wait
 }
 
@@ -57,7 +57,7 @@ then
 		sudo rm -rf "/tmp/$package.tar.gz"
 		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 	else
-		echo "pacote não existe no repositório AUR"
+		echo "package does not exist in aur repository"
 	fi	
 elif [[ "$option" == "--remove" || "$option" == "-R" ]]; 
 then
@@ -74,14 +74,13 @@ then
 	if [[ "$package" == "" || "$package" == " " ]]; then
 		printError
 	else
-		sudo pacman -Qs w3m > /tmp/aurup.txt
-		if [ -s /tmp/aurup.txt ]; then
-			searchPackage
-		else
+		condition=$( pacman -Qs w3m )
+		if [ "$condition" == "" ]; then
 			sudo pacman -S w3m --noconfirm
 			searchPackage
+		else
+			searchPackage
 		fi
-		sudo rm /tmp/aurup.txt
 	fi
 elif [[ "$option" == "--version" || "$option" == "-V" ]]; 
 then
