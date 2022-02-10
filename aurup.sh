@@ -4,11 +4,10 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha07"
+version="1.0.0-alpha08"
 
 function printError {
 	echo "invalid option, consult manual with command aurup --help"
-	echo ""
 }
 
 function printManual {
@@ -20,7 +19,6 @@ function printManual {
 	echo "aurup {-L  --list   }"
 	echo "aurup {-h  --help   }"
 	echo "aurup {-V  --version}"
-	echo ""
 }
 
 function printVersion {
@@ -28,7 +26,6 @@ function printVersion {
 	echo "copyright (C) 2019-2022 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
 	echo "learn more at https://github.com/wellintonvieira/aurup "
-	echo ""
 }
 
 function searchPackage {
@@ -43,13 +40,13 @@ then
 	sudo pacman -Qm
 elif [[ "$option" == "--sync" || "$option" == "-S" ]];
 then
-	url="$(curl -Is "https://aur.archlinux.org/packages/$package/" | head -1)"
-	condition=( $url )
+	url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+	condition="$( curl -Is "$url" | head -1 )"
 	if [[ "$package" == "" || "$package" == " " ]]; then
 		printError
-	elif [ ${condition[-2]} == "200" ]; then
+	elif [[ $condition == *"200"* ]]; then
 		sudo mount -o remount,size=10G /tmp
-		wget -q "https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+		wget -q $url
 		tar -xzf "$package.tar.gz"
 		cd "$package"
 		makepkg -m -c -si --needed --noconfirm
