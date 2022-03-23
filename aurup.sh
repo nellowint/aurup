@@ -4,7 +4,11 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha09"
+version="1.0.0-alpha10"
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr0`
 
 function printError {
 	echo "invalid option, consult manual with command aurup --help"
@@ -36,56 +40,62 @@ function searchPackage {
 	wait
 }
 
+function installPackage {
+	echo "${red}$package ${reset}will be updated"
+	sudo mount -o remount,size=10G /tmp
+	wget -q $url
+	tar -xzf "$package.tar.gz"
+	cd "$package"
+	makepkg -m -c -si --needed --noconfirm
+	sudo rm -rf "/tmp/$package"
+	sudo rm -rf "/tmp/$package.tar.gz"
+	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+}
+
 function verifyPackageVersion {
-	condition1="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
-	condition2=$( sudo pacman -Qm | grep $package | cut -d' ' -f2 )
-	if [[ "$condition1" == "$condition2" ]]; then
-		echo "package is in the latest version"
-	else	
-		sudo mount -o remount,size=10G /tmp
-		wget -q $url
-		tar -xzf "$package.tar.gz"
-		cd "$package"
-		makepkg -m -c -si --needed --noconfirm
-		sudo rm -rf "/tmp/$package"
-		sudo rm -rf "/tmp/$package.tar.gz"
-		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+	aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
+	localPackageVersion=$( sudo pacman -Qm | grep $package | cut -d' ' -f2 )
+	if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
+		return 0
 	fi
+	return 1
 }
 
 function updatePackages {
 	file1="/tmp/aurup.txt"
 	file2="/tmp/packages.txt"
 	sudo pacman -Qm > $file1
-	echo -ne "updating the database, please wait"
+	echo "updating the database, please wait..."
 	while read -r line; do
-	echo -ne "."
-	package="$( echo "$line" | cut -d' ' -f1 )"
-	condition1="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
-	condition2=$( sudo pacman -Qm | grep $package | cut -d' ' -f2 )
-		if [[ "$condition1" != "$condition2" ]]; then
+		package="$( echo "$line" | cut -d' ' -f1 )"
+		if verifyPackageVersion; then
+			echo "${green}$package ${reset}is on the latest version"
+		else
+			echo "${red}$package ${reset}needs to be updated"
 			echo "$package" >> $file2
 		fi
 	done < $file1
 
 	if [ -s "$file2" ]; then
-		sudo mount -o remount,size=10G /tmp
 		while read -r line; do
-			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$line.tar.gz"
-			wget -q $url
-			tar -xzf "$line.tar.gz"
-			cd "$line"
-			makepkg -m -c -si --needed --noconfirm
-			sudo rm -rf "/tmp/$line"
-			sudo rm -rf "/tmp/$line.tar.gz"
+			package=line
+			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+			installPackage
 		done < $file2
+		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 	else
 		echo ""
 		echo "there are no packages to update"
 	fi
 	sudo rm -rf "$file1"
 	sudo rm -rf "$file2"
-	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+}
+
+function verifyDependency {
+	dependency=$( pacman -Qs w3m )
+	if [ "$dependency" == "" ]; then
+		sudo pacman -S w3m --noconfirm
+	fi
 }
 
 if [[ "$option" == "--list" || "$option" == "-L" ]];
@@ -94,17 +104,23 @@ then
 elif [[ "$option" == "--sync" || "$option" == "-S" ]];
 then
 	url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-	condition="$( curl -Is "$url" | head -1 )"
+	requestCode="$( curl -Is "$url" | head -1 )"
 	if [[ "$package" == "" || "$package" == " " ]]; then
 		printError
-	elif [[ $condition == *"200"* ]]; then
-		verifyPackageVersion
+	elif [[ $requestCode == *"200"* ]]; then
+		verifyDependency
+		if verifyPackageVersion; then
+			echo "${green}$package ${reset}is in the latest version"
+		else
+			installPackage
+		fi
 	else
 		echo "package does not exist in aur repository"
 	fi	
 
 elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; 
 then
+	verifyDependency
 	updatePackages
 elif [[ "$option" == "--remove" || "$option" == "-R" ]]; 
 then
@@ -121,13 +137,8 @@ then
 	if [[ "$package" == "" || "$package" == " " ]]; then
 		printError
 	else
-		condition=$( pacman -Qs w3m )
-		if [ "$condition" == "" ]; then
-			sudo pacman -S w3m --noconfirm
-			searchPackage
-		else
-			searchPackage
-		fi
+		verifyDependency
+		searchPackage
 	fi
 elif [[ "$option" == "--version" || "$option" == "-V" ]]; 
 then
