@@ -4,7 +4,7 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha11"
+version="1.0.0-alpha12"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -41,6 +41,7 @@ function searchPackage {
 }
 
 function installPackage {
+	echo ""
 	wget -q $url
 	tar -xzf "$package.tar.gz"
 	cd "$package"
@@ -62,6 +63,8 @@ function verifyPackageVersion {
 function updatePackages {
 	allPackages="/tmp/allPackages.txt"
 	outdatedPackages="/tmp/outdatedPackages.txt"
+	echo -n > $allPackages
+	echo -n > $outdatedPackages
 	
 	sudo pacman -Qm > $allPackages
 	echo "updating the database, please wait..."
@@ -79,12 +82,10 @@ function updatePackages {
 	if [ -s "$outdatedPackages" ]; then
 		sudo mount -o remount,size=10G /tmp
 		while read -r line; do
-			package=line
+			package=$line
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-			echo "${red}$package ${reset}will be updated"
 			installPackage
 		done < $outdatedPackages
-		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 	else
 		echo ""
 		echo "there are no packages to update"
@@ -103,44 +104,43 @@ function verifyDependency {
 
 if [[ "$option" == "--list" || "$option" == "-L" ]]; then
 	sudo pacman -Qm
-elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
-	url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-	requestCode="$( curl -Is "$url" | head -1 )"
-	if [[ "$package" == "" || "$package" == " " ]]; then
-		printError
-	elif [[ $requestCode == *"200"* ]]; then
-		verifyDependency
-		if verifyPackageVersion; then
-			echo "${green}$package ${reset}is in the latest version"
+	elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
+		url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+		requestCode="$( curl -Is "$url" | head -1 )"
+		if [[ "$package" == "" || "$package" == " " ]]; then
+			printError
+		elif [[ $requestCode == *"200"* ]]; then
+			verifyDependency
+			if verifyPackageVersion; then
+				echo "${green}$package ${reset}is in the latest version"
+			else
+				sudo mount -o remount,size=10G /tmp
+				installPackage
+			fi
 		else
-			sudo mount -o remount,size=10G /tmp
-			echo "${green}$package ${reset}will be installed"
-			installPackage
+			echo "package does not exist in aur repository"
 		fi
-	else
-		echo "package does not exist in aur repository"
-	fi	
-
-elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
-	verifyDependency
-	updatePackages
-elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
-	if [[ "$package" == "" || "$package" == " " ]]; then
-		printError
-	else
-		sudo pacman -R "$package"
-	fi
-elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
-	printManual
-elif [[ "$option" == "--search" || "$option" == "-Ss" ]]; then
-	if [[ "$package" == "" || "$package" == " " ]]; then
-		printError
-	else
+	elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
 		verifyDependency
-		searchPackage
-	fi
-elif [[ "$option" == "--version" || "$option" == "-V" ]]; then
-	printVersion
+		updatePackages
+	elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
+		if [[ "$package" == "" || "$package" == " " ]]; then
+			printError
+		else
+			sudo pacman -R "$package"
+			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+		fi
+	elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
+		printManual
+	elif [[ "$option" == "--search" || "$option" == "-Ss" ]]; then
+		if [[ "$package" == "" || "$package" == " " ]]; then
+			printError
+		else
+			verifyDependency
+			searchPackage
+		fi
+	elif [[ "$option" == "--version" || "$option" == "-V" ]]; then
+		printVersion
 else
 	printError
 fi
