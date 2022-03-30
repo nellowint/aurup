@@ -47,8 +47,7 @@ function installPackage {
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
 	sudo rm -rf "/tmp/$package"
-	sudo rm -rf "/tmp/$package.tar.gz"
-	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+	sudo rm -rf "/tmp/$package.tar.gz" 
 }
 
 function verifyPackageVersion {
@@ -86,6 +85,7 @@ function updatePackages {
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 			installPackage
 		done < $outdatedPackages
+		removeDependecy
 	else
 		echo ""
 		echo "there are no packages to update"
@@ -102,45 +102,56 @@ function verifyDependency {
 	fi
 }
 
+function removeDependecy {
+	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+}
+
 if [[ "$option" == "--list" || "$option" == "-L" ]]; then
-	sudo pacman -Qm
-	elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
-		url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-		requestCode="$( curl -Is "$url" | head -1 )"
-		if [[ "$package" == "" || "$package" == " " ]]; then
-			printError
-		elif [[ $requestCode == *"200"* ]]; then
-			verifyDependency
-			if verifyPackageVersion; then
-				echo "${green}$package ${reset}is in the latest version"
-			else
-				sudo mount -o remount,size=10G /tmp
-				installPackage
-			fi
+	if [ -z "$package" ]; then
+		sudo pacman -Qm
+	else
+		sudo pacman -Qm | grep $package
+	fi
+elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
+	url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+	requestCode="$( curl -Is "$url" | head -1 )"
+	if [ -z "$package" ]; then
+		printError
+	elif [[ $requestCode == *"200"* ]]; then
+		verifyDependency
+		if verifyPackageVersion; then
+			echo "${green}$package ${reset}is in the latest version"
 		else
-			echo "package does not exist in aur repository"
+			sudo mount -o remount,size=10G /tmp
+			installPackage
+			removeDependecy
 		fi
-	elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
+	else
+		echo "package does not exist in aur repository"
+	fi
+elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
+	if [ -z "$package" ]; then
 		verifyDependency
 		updatePackages
-	elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
-		if [[ "$package" == "" || "$package" == " " ]]; then
-			printError
-		else
-			sudo pacman -R "$package"
-			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
-		fi
-	elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
-		printManual
-	elif [[ "$option" == "--search" || "$option" == "-Ss" ]]; then
-		if [[ "$package" == "" || "$package" == " " ]]; then
-			printError
-		else
-			verifyDependency
-			searchPackage
-		fi
-	elif [[ "$option" == "--version" || "$option" == "-V" ]]; then
-		printVersion
+	fi
+elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
+	if [ -z "$package" ]; then
+		printError
+	else
+		sudo pacman -R "$package"
+		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+	fi
+elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
+	printManual
+elif [[ "$option" == "--search" || "$option" == "-Ss" ]]; then
+	if [ -z "$package" ]; then
+		printError
+	else
+		verifyDependency
+		searchPackage
+	fi
+elif [[ "$option" == "--version" || "$option" == "-V" ]]; then
+	printVersion
 else
 	printError
 fi
