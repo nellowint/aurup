@@ -4,7 +4,7 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha12"
+version="1.0.0-alpha14"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -52,7 +52,7 @@ function installPackage {
 
 function verifyPackageVersion {
 	aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
-	localPackageVersion=$( sudo pacman -Qm | grep $package | cut -d' ' -f2 )
+	localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
 	if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
 		return 0
 	fi
@@ -65,7 +65,7 @@ function updatePackages {
 	echo -n > $allPackages
 	echo -n > $outdatedPackages
 	
-	sudo pacman -Qm > $allPackages
+	pacman -Qm > $allPackages
 	echo "updating the database, please wait..."
 
 	while read -r line; do
@@ -91,14 +91,14 @@ function updatePackages {
 		echo "there are no packages to update"
 	fi
 
-	sudo rm -rf "$allPackages"
-	sudo rm -rf "$outdatedPackages"
+	rm -rf "$allPackages"
+	rm -rf "$outdatedPackages"
 }
 
 function verifyDependency {
 	dependency=$( pacman -Qs w3m )
 	if [ "$dependency" == "" ]; then
-		sudo pacman -S w3m --noconfirm
+		pacman -S w3m --noconfirm
 	fi
 }
 
@@ -108,9 +108,9 @@ function removeDependecy {
 
 if [[ "$option" == "--list" || "$option" == "-L" ]]; then
 	if [ -z "$package" ]; then
-		sudo pacman -Qm
+		pacman -Qm
 	else
-		sudo pacman -Qm | grep $package
+		pacman -Qm | grep $package
 	fi
 elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
 	url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
@@ -138,8 +138,13 @@ elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
 	if [ -z "$package" ]; then
 		printError
 	else
-		sudo pacman -R "$package"
-		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+		condition=$( pacman -Q | grep $package )
+		if [ -z "$condition" ]; then
+			echo "Package $package not exist"
+		else
+			sudo pacman -R "$package"
+			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+		fi
 	fi
 elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
 	printManual
