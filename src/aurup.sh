@@ -4,7 +4,7 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha14"
+version="1.0.0-alpha15"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
