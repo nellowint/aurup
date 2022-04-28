@@ -4,7 +4,7 @@
 cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha15"
+version="1.0.0-alpha16"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -28,7 +28,7 @@ function printManual {
 
 function printVersion {
 	echo "aurup $version"
-	echo "copyright (C) 2019-2022 Vieirateam Developers"
+	echo "2019-2022 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
 	echo "learn more at https://github.com/wellintonvieira/aurup "
 }

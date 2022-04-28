@@ -15,6 +15,5 @@ else
 	sudo chmod +x "/$PWD/uninstall.sh"
 	echo -e "\nalias aurup='sh /opt/aurup/aurup.sh'\n" >> "/$HOME/.bashrc"
 	echo -e "source /usr/share/bash-completion/completions/aurup-complete.sh" >> "/$HOME/.bashrc"
-	echo "aurup was installed successfully"
-	exec bash
+	exec bash --login
 fi
