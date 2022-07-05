@@ -1,10 +1,10 @@
 #!\bin\bash
 #Update Package AUR
 
-cd /tmp/
 option="$1"
 package="$2"
-version="1.0.0-alpha16"
+version="1.0.0-alpha17"
+directory="/opt/aurup/tmp"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -46,8 +46,8 @@ function installPackage {
 	tar -xzf "$package.tar.gz"
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
-	sudo rm -rf "/tmp/$package"
-	sudo rm -rf "/tmp/$package.tar.gz" 
+	sudo rm -rf "$package"
+	sudo rm -rf "$package.tar.gz" 
 }
 
 function verifyPackageVersion {
@@ -60,8 +60,8 @@ function verifyPackageVersion {
 }
 
 function updatePackages {
-	allPackages="/tmp/allPackages.txt"
-	outdatedPackages="/tmp/outdatedPackages.txt"
+	allPackages="$directory/allPackages.txt"
+	outdatedPackages="$directory/outdatedPackages.txt"
 	echo -n > $allPackages
 	echo -n > $outdatedPackages
 	
@@ -91,15 +91,25 @@ function updatePackages {
 		echo "there are no packages to update"
 	fi
 
-	rm -rf "$allPackages"
-	rm -rf "$outdatedPackages"
+	sudo rm -rf "$allPackages"
+	sudo rm -rf "$outdatedPackages"
 }
 
 function verifyDependency {
 	dependency=$( pacman -Qs w3m )
 	if [ "$dependency" == "" ]; then
-		pacman -S w3m --noconfirm
+		sudo pacman -S w3m --noconfirm
 	fi
+}
+
+function makeDirectory {
+	if [ -d $directory ]; then
+		echo "Directory $directory is exist"
+	else
+		sudo mkdir $directory
+		echo "Make Directory $directory"
+	fi
+	cd $directory
 }
 
 function removeDependecy {
@@ -108,9 +118,9 @@ function removeDependecy {
 
 if [[ "$option" == "--list" || "$option" == "-L" ]]; then
 	if [ -z "$package" ]; then
-		pacman -Qm
+		sudo pacman -Qm
 	else
-		pacman -Qm | grep $package
+		sudo pacman -Qm | grep $package
 	fi
 elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
 	url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
@@ -123,6 +133,7 @@ elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
 			echo "${green}$package ${reset}is in the latest version"
 		else
 			sudo mount -o remount,size=10G /tmp
+			makeDirectory
 			installPackage
 			removeDependecy
 		fi
@@ -132,6 +143,7 @@ elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
 elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
 	if [ -z "$package" ]; then
 		verifyDependency
+		makeDirectory
 		updatePackages
 	fi
 elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then

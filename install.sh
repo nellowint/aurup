@@ -13,7 +13,7 @@ else
 	sudo cp "$PWD/src/aurup-complete.sh" "/usr/share/bash-completion/completions/"
 	sudo chmod +x "/opt/aurup/aurup.sh"
 	sudo chmod +x "/$PWD/uninstall.sh"
-	echo -e "\nalias aurup='sh /opt/aurup/aurup.sh'\n" >> "/$HOME/.bashrc"
+	echo -e "\nalias aurup='sudo sh /opt/aurup/aurup.sh'\n" >> "/$HOME/.bashrc"
 	echo -e "source /usr/share/bash-completion/completions/aurup-complete.sh" >> "/$HOME/.bashrc"
 	exec bash --login
 fi
