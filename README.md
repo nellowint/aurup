@@ -1,6 +1,7 @@
 # aurup
-AUR Packages Installer (Unreleased)
+## AUR Packages Installer (Unreleased)
 
+To install aurup on your computer, just run the command **chmod +x install.sh** and after running the command **sh install.sh**, if necessary run the command with sudo privileges. 
 Aurup is a program to facilitate the installation of Arch User Repository (AUR) software. Developed in the Shell Script language, Aurup's main functions are:
 
 aurup {-S --sync }
