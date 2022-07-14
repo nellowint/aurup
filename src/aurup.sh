@@ -3,8 +3,8 @@
 
 option="$1"
 parameters="${@:2}"
-version="1.0.0-alpha18"
-directory="/opt/aurup/tmp"
+version="1.0.0-alpha19"
+directory="/$HOME/.aurup"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -17,13 +17,14 @@ function printError {
 function printManual {
 	echo "use:  aurup <operation> [...]"
 	echo "operations:"
-	echo "aurup {-S  --sync   } [package name]"
-	echo "aurup {-R  --remove } [package name]"
-	echo "aurup {-Ss --search } [package name]"
-	echo "aurup {-Sy --update }"
-	echo "aurup {-L  --list   }"
-	echo "aurup {-h  --help   }"
-	echo "aurup {-V  --version}"
+	echo "aurup {-S  --sync      } [package name]"
+	echo "aurup {-R  --remove    } [package name]"
+	echo "aurup {-Ss --search    } [package name]"
+	echo "aurup {-Sy --update    }"
+	echo "aurup {-L  --list      }"
+	echo "aurup {-h  --help      }"
+	echo "aurup {-U  --uninstall }"
+	echo "aurup {-V  --version   }"
 }
 
 function printVersion {
@@ -33,26 +34,14 @@ function printVersion {
 	echo "learn more at https://github.com/wellintonvieira/aurup "
 }
 
-function searchPackage {
-	echo "listing similar packages..."
-	for package in $parameters; do
-		url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
-		w3m -dump $url | sed -n "/^$package/p"
-		echo ""
-	done
-}
-
 function checkPackage {
 	for package in $parameters; do
 		url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 		requestCode="$( curl -Is "$url" | head -1 )"
 		if [[ $requestCode == *"200"* ]]; then
-			verifyDependency
 			if verifyPackageVersion; then
 				echo "${green}$package ${reset}is in the latest version"
 			else
-				sudo mount -o remount,size=10G /tmp
-				makeDirectory
 				installPackage
 				removeDependecy
 			fi
@@ -63,25 +52,14 @@ function checkPackage {
 }
 
 function installPackage {
-	echo ""
+	echo "preparing to install the package $package"
+	cd $directory
 	wget -q $url
 	tar -xzf "$package.tar.gz"
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
-	sudo rm -rf "$package"
-	sudo rm -rf "$package.tar.gz" 
-}
-
-function removePackage {
-	for package in $parameters; do
-		condition=$( pacman -Q | grep $package )
-		if [ -z "$condition" ]; then
-			echo "Package $package not exist"
-		else
-			sudo pacman -R "$package"
-		fi
-	done
-	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+	rm -rf "$directory/$package"
+	rm -rf "$directory/$package.tar.gz"
 }
 
 function verifyPackageVersion {
@@ -98,10 +76,9 @@ function updatePackages {
 	outdatedPackages="$directory/outdatedPackages.txt"
 	echo -n > $allPackages
 	echo -n > $outdatedPackages
-	
-	sudo pacman -Qm > $allPackages
+	pacman -Qm > $allPackages
 	echo "updating the database, please wait..."
-
+	
 	while read -r line; do
 		package="$( echo "$line" | cut -d' ' -f1 )"
 		if verifyPackageVersion; then
@@ -125,52 +102,53 @@ function updatePackages {
 		echo "there are no packages to update"
 	fi
 
-	sudo rm -rf "$allPackages"
-	sudo rm -rf "$outdatedPackages"
+	rm -rf "$allPackages"
+	rm -rf "$outdatedPackages"
 }
 
-function verifyDependency {
-	dependency=$( pacman -Qs w3m )
-	if [ "$dependency" == "" ]; then
-		sudo pacman -S w3m --noconfirm
-	fi
+function searchPackage {
+	echo "listing similar packages..."
+	for package in $parameters; do
+		url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
+		w3m -dump $url | sed -n "/^$package/p"
+		echo ""
+	done
 }
 
-function makeDirectory {
-	if [ -d $directory ]; then
-		echo "directory $directory is exist"
-	else
-		sudo mkdir $directory
-		echo "make directory $directory"
-	fi
-	cd $directory
+function removePackage {
+	for package in $parameters; do
+		condition=$( pacman -Q | grep $package )
+		if [ -z "$condition" ]; then
+			echo "Package $package not exist"
+		else
+			sudo pacman -R "$package"
+			removeDependecy
+		fi
+	done
 }
 
 function removeDependecy {
 	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 }
 
-if [[ "$option" == "--list" || "$option" == "-L" ]]; then
-	if [ -z "$parameters" ]; then
-		sudo pacman -Qm
+function uninstallAurup {
+	if [ -d $directory ]; then
+		rm -rf "$directory"
+		sudo rm -rf "/usr/share/bash-completion/completions/aurup-complete.sh"
+		sed -i "/aurup/d" "/$HOME/.bashrc"
+		echo "aurup was uninstalled successfully"
+		exec bash --login
 	else
-		for package in $parameters; do
-			sudo pacman -Qm | grep $package
-		done
+		echo "aurup is not installed"
 	fi
-elif [[ "$option" == "--sync" || "$option" == "-S" ]]; then
+}
+
+if [[ "$option" == "--sync" || "$option" == "-S" ]]; then
 	if [ -z "$parameters" ]; then
 		printError
 	else
+		sudo mount -o remount,size=10G /tmp
 		checkPackage
-	fi
-elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
-	if [ -z "$package" ]; then
-		verifyDependency
-		makeDirectory
-		updatePackages
-	else
-		printError
 	fi
 elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
 	if [ -z "$parameters" ]; then
@@ -178,15 +156,30 @@ elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
 	else
 		removePackage
 	fi
-elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
-	printManual
 elif [[ "$option" == "--search" || "$option" == "-Ss" ]]; then
 	if [ -z "$parameters" ]; then
 		printError
 	else
-		verifyDependency
 		searchPackage
 	fi
+elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
+	if [ -z "$package" ]; then
+		updatePackages
+	else
+		printError
+	fi
+elif [[ "$option" == "--list" || "$option" == "-L" ]]; then
+	if [ -z "$parameters" ]; then
+		pacman -Qm
+	else
+		for package in $parameters; do
+			pacman -Qm | grep $package
+		done
+	fi
+elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
+	printManual
+elif [[ "$option" == "--uninstall" || "$option" == "-U" ]]; then
+	uninstallAurup	
 elif [[ "$option" == "--version" || "$option" == "-V" ]]; then
 	printVersion
 else
