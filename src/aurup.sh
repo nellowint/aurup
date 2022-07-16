@@ -2,8 +2,8 @@
 #Update Package AUR
 
 option="$1"
-parameters="${@:2}"
-version="1.0.0-alpha19"
+packages="${@:2}"
+version="1.0.0-alpha20"
 directory="/$HOME/.aurup"
 
 red=`tput setaf 1`
@@ -35,7 +35,7 @@ function printVersion {
 }
 
 function checkPackage {
-	for package in $parameters; do
+	for package in $packages; do
 		url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 		requestCode="$( curl -Is "$url" | head -1 )"
 		if [[ $requestCode == *"200"* ]]; then
@@ -52,7 +52,7 @@ function checkPackage {
 }
 
 function installPackage {
-	echo "preparing to install the package $package"
+	echo "preparing to install the package ${green}$package${reset}"
 	cd $directory
 	wget -q $url
 	tar -xzf "$package.tar.gz"
@@ -90,7 +90,6 @@ function updatePackages {
 	done < $allPackages
 
 	if [ -s "$outdatedPackages" ]; then
-		sudo mount -o remount,size=10G /tmp
 		while read -r line; do
 			package=$line
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
@@ -108,7 +107,7 @@ function updatePackages {
 
 function searchPackage {
 	echo "listing similar packages..."
-	for package in $parameters; do
+	for package in $packages; do
 		url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
 		w3m -dump $url | sed -n "/^$package/p"
 		echo ""
@@ -116,12 +115,12 @@ function searchPackage {
 }
 
 function removePackage {
-	for package in $parameters; do
+	for package in $packages; do
 		condition=$( pacman -Q | grep $package )
 		if [ -z "$condition" ]; then
 			echo "Package $package not exist"
 		else
-			sudo pacman -R "$package"
+			sudo pacman -R "$package" --noconfirm
 			removeDependecy
 		fi
 	done
@@ -143,45 +142,54 @@ function uninstallAurup {
 	fi
 }
 
-if [[ "$option" == "--sync" || "$option" == "-S" ]]; then
-	if [ -z "$parameters" ]; then
+case $option in
+	"--sync"|"-S" )
+		if [ -z "$packages" ]; then
+			printError
+		else
+			checkPackage
+		fi	
+	;;
+	"--remove"|"-R" )
+		if [ -z "$packages" ]; then
+			printError
+		else
+			removePackage
+		fi
+	;;
+	"--search"|"-Ss" )
+		if [ -z "$packages" ]; then
+			printError
+		else
+			searchPackage
+		fi
+	;;
+	"--update"|"-Sy" )
+		if [ -z "$package" ]; then
+			updatePackages
+		else
+			printError
+		fi
+	;;
+	"--list"|"-L")
+		if [ -z "$packages" ]; then
+			pacman -Qm
+		else
+			for package in $packages; do
+				pacman -Qm | grep $package
+			done
+		fi
+	;;
+	"--help"|"-h" )
+		printManual
+	;;
+	"--uninstall"|"-U" )
+		uninstallAurup
+	;;
+	"--version"|"-V" )
+		printVersion
+	;;
+	*)
 		printError
-	else
-		sudo mount -o remount,size=10G /tmp
-		checkPackage
-	fi
-elif [[ "$option" == "--remove" || "$option" == "-R" ]]; then
-	if [ -z "$parameters" ]; then
-		printError
-	else
-		removePackage
-	fi
-elif [[ "$option" == "--search" || "$option" == "-Ss" ]]; then
-	if [ -z "$parameters" ]; then
-		printError
-	else
-		searchPackage
-	fi
-elif [[ "$option" == "--update" || "$option" == "-Sy" ]]; then
-	if [ -z "$package" ]; then
-		updatePackages
-	else
-		printError
-	fi
-elif [[ "$option" == "--list" || "$option" == "-L" ]]; then
-	if [ -z "$parameters" ]; then
-		pacman -Qm
-	else
-		for package in $parameters; do
-			pacman -Qm | grep $package
-		done
-	fi
-elif [[ "$option" == "--help" || "$option" == "-h" ]]; then
-	printManual
-elif [[ "$option" == "--uninstall" || "$option" == "-U" ]]; then
-	uninstallAurup	
-elif [[ "$option" == "--version" || "$option" == "-V" ]]; then
-	printVersion
-else
-	printError
-fi
+	;;
+esac
