@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha20"
+version="1.0.0-alpha21"
 directory="/$HOME/.aurup"
 
 red=`tput setaf 1`
@@ -20,8 +20,9 @@ function printManual {
 	echo "aurup {-S  --sync      } [package name]"
 	echo "aurup {-R  --remove    } [package name]"
 	echo "aurup {-Ss --search    } [package name]"
-	echo "aurup {-Sy --update    }"
+	echo "aurup {-L  --list      } [package name]"
 	echo "aurup {-L  --list      }"
+	echo "aurup {-Sy --update    }"
 	echo "aurup {-h  --help      }"
 	echo "aurup {-U  --uninstall }"
 	echo "aurup {-V  --version   }"
@@ -35,6 +36,7 @@ function printVersion {
 }
 
 function checkPackage {
+	local hasDependency=false
 	for package in $packages; do
 		url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 		requestCode="$( curl -Is "$url" | head -1 )"
@@ -43,12 +45,16 @@ function checkPackage {
 				echo "${green}$package ${reset}is in the latest version"
 			else
 				installPackage
-				removeDependecy
+				hasDependency=true
 			fi
 		else
 			echo "${red}$package ${reset}does not exist in aur repository"
 		fi
 	done
+
+	if [ $hasDependency ]; then
+		removeDependecy
+	fi
 }
 
 function installPackage {
@@ -121,9 +127,9 @@ function removePackage {
 			echo "Package $package not exist"
 		else
 			sudo pacman -R "$package" --noconfirm
-			removeDependecy
 		fi
 	done
+	removeDependecy
 }
 
 function removeDependecy {

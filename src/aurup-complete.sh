@@ -9,6 +9,7 @@ _aurup_complete() {
 	case "$cur" in
 		--*) COMPREPLY=( $( compgen -W "$words" -- $cur ) );;
 		-*) COMPREPLY=( $( compgen -W "$letters" -- $cur ) );;
+		*) COMPREPLY=( $( compgen -W "$letters" -- $cur ) );;
 	esac
 	return 0
 }
