@@ -1,38 +1,40 @@
 #!\bin\bash
-#Update Package AUR
+#Update Packages AUR
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha21"
-directory="/$HOME/.aurup"
+version="1.0.0-alpha22"
+name="aurup"
+directory="$HOME/.$name"
+directoryTemp="$directory/tmp"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
 
 function printError {
-	echo "invalid option, consult manual with command aurup --help"
+	echo "invalid option, consult manual with command $name --help"
 }
 
 function printManual {
-	echo "use:  aurup <operation> [...]"
+	echo "use:  $name <operation> [...]"
 	echo "operations:"
-	echo "aurup {-S  --sync      } [package name]"
-	echo "aurup {-R  --remove    } [package name]"
-	echo "aurup {-Ss --search    } [package name]"
-	echo "aurup {-L  --list      } [package name]"
-	echo "aurup {-L  --list      }"
-	echo "aurup {-Sy --update    }"
-	echo "aurup {-h  --help      }"
-	echo "aurup {-U  --uninstall }"
-	echo "aurup {-V  --version   }"
+	echo "$name {-S  --sync      } [package name]"
+	echo "$name {-R  --remove    } [package name]"
+	echo "$name {-Ss --search    } [package name]"
+	echo "$name {-L  --list      } [package name]"
+	echo "$name {-L  --list      }"
+	echo "$name {-Sy --update    }"
+	echo "$name {-h  --help      }"
+	echo "$name {-U  --uninstall }"
+	echo "$name {-V  --version   }"
 }
 
 function printVersion {
-	echo "aurup $version"
+	echo "$name $version"
 	echo "2019-2022 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
-	echo "learn more at https://github.com/wellintonvieira/aurup "
+	echo "learn more at https://github.com/wellintonvieira/$name "
 }
 
 function checkPackage {
@@ -58,14 +60,12 @@ function checkPackage {
 }
 
 function installPackage {
-	echo "preparing to install the package ${green}$package${reset}"
-	cd $directory
+	cd $directoryTemp
 	wget -q $url
 	tar -xzf "$package.tar.gz"
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
-	rm -rf "$directory/$package"
-	rm -rf "$directory/$package.tar.gz"
+	rm -f "$directoryTemp/*"
 }
 
 function verifyPackageVersion {
@@ -78,8 +78,8 @@ function verifyPackageVersion {
 }
 
 function updatePackages {
-	allPackages="$directory/allPackages.txt"
-	outdatedPackages="$directory/outdatedPackages.txt"
+	allPackages="$directoryTemp/allPackages.txt"
+	outdatedPackages="$directoryTemp/outdatedPackages.txt"
 	echo -n > $allPackages
 	echo -n > $outdatedPackages
 	pacman -Qm > $allPackages
@@ -107,8 +107,7 @@ function updatePackages {
 		echo "there are no packages to update"
 	fi
 
-	rm -rf "$allPackages"
-	rm -rf "$outdatedPackages"
+	rm -f "$directoryTemp/*"
 }
 
 function searchPackage {
@@ -132,70 +131,36 @@ function removePackage {
 	removeDependecy
 }
 
+function listLocalPackages {
+	for package in $packages; do
+		pacman -Qm | grep $package
+	done
+}
+
 function removeDependecy {
 	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 }
 
-function uninstallAurup {
+function uninstallApp {
 	if [ -d $directory ]; then
 		rm -rf "$directory"
-		sudo rm -rf "/usr/share/bash-completion/completions/aurup-complete.sh"
-		sed -i "/aurup/d" "/$HOME/.bashrc"
-		echo "aurup was uninstalled successfully"
+		sudo rm -rf "/usr/share/bash-completion/completions/$name-complete.sh"
+		sed -i "/$name/d" "/$HOME/.bashrc"
+		echo "$name was uninstalled successfully"
 		exec bash --login
 	else
-		echo "aurup is not installed"
+		echo "$name is not installed"
 	fi
 }
 
 case $option in
-	"--sync"|"-S" )
-		if [ -z "$packages" ]; then
-			printError
-		else
-			checkPackage
-		fi	
-	;;
-	"--remove"|"-R" )
-		if [ -z "$packages" ]; then
-			printError
-		else
-			removePackage
-		fi
-	;;
-	"--search"|"-Ss" )
-		if [ -z "$packages" ]; then
-			printError
-		else
-			searchPackage
-		fi
-	;;
-	"--update"|"-Sy" )
-		if [ -z "$package" ]; then
-			updatePackages
-		else
-			printError
-		fi
-	;;
-	"--list"|"-L")
-		if [ -z "$packages" ]; then
-			pacman -Qm
-		else
-			for package in $packages; do
-				pacman -Qm | grep $package
-			done
-		fi
-	;;
-	"--help"|"-h" )
-		printManual
-	;;
-	"--uninstall"|"-U" )
-		uninstallAurup
-	;;
-	"--version"|"-V" )
-		printVersion
-	;;
-	*)
-		printError
-	;;
+	"--sync"|"-S"		) [[ -z "$packages" ]] && printError || checkPackage;;
+	"--remove"|"-R"		) [[ -z "$packages" ]] && printError || removePackage;;
+	"--search"|"-Ss"	) [[ -z "$packages" ]] && printError || searchPackage;;
+	"--update"|"-Sy"	) [[ -z "$packages" ]] && updatePackages || printError;;
+	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || listLocalPackages;;
+	"--help"|"-h"		) printManual;;
+	"--uninstall"|"-U"	) uninstallApp;;
+	"--version"|"-V"	) printVersion ;;
+	*) printError;;
 esac
