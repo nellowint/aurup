@@ -37,35 +37,54 @@ function printVersion {
 	echo "learn more at https://github.com/wellintonvieira/$name "
 }
 
-function checkPackage {
-	local hasDependency=false
-	for package in $packages; do
-		url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-		requestCode="$( curl -Is "$url" | head -1 )"
-		if [[ $requestCode == *"200"* ]]; then
-			if verifyPackageVersion; then
-				echo "${green}$package ${reset}is in the latest version"
-			else
-				installPackage
-				hasDependency=true
-			fi
-		else
-			echo "${red}$package ${reset}does not exist in aur repository"
-		fi
-	done
+function printErrorConection {
+	echo "Sorry, Aur.archlinux.org is DOWN for everyone. Try again in a few minutes."
+}
 
-	if [ $hasDependency ]; then
-		removeDependecy
+function verifyConection {
+	url="https://aur.archlinux.org"
+	requestCode="$( curl -Is "$url" | head -1 )"
+	if [[ $requestCode == *"500" ]]; then
+		return 0
+	fi
+	return 1
+}
+
+function checkPackage {
+	if verifyConection; then
+		printErrorConection
+	else
+		local hasDependency=0
+		for package in $packages; do
+			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+			requestCode="$( curl -Is "$url" | head -1 )"
+			if [[ $requestCode == *"200"* ]]; then
+				if verifyPackageVersion; then
+					echo "${green}$package ${reset}is in the latest version"
+					hasDependency=0
+				else
+					installPackage
+					hasDependency=1
+				fi
+			else
+				echo "${red}$package ${reset}does not exist in aur repository"
+			fi
+		done
+
+		if [ $hasDependency -eq "1" ]; then
+			removeDependecy
+			rm -f "$directoryTemp/*"
+		fi
 	fi
 }
 
 function installPackage {
+	echo "preparing to install the package ${green}$package${reset}"
 	cd $directoryTemp
-	wget -q $url
+	curl -s -O $url
 	tar -xzf "$package.tar.gz"
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
-	rm -f "$directoryTemp/*"
 }
 
 function verifyPackageVersion {
@@ -78,45 +97,51 @@ function verifyPackageVersion {
 }
 
 function updatePackages {
-	allPackages="$directoryTemp/allPackages.txt"
-	outdatedPackages="$directoryTemp/outdatedPackages.txt"
-	echo -n > $allPackages
-	echo -n > $outdatedPackages
-	pacman -Qm > $allPackages
-	echo "updating the database, please wait..."
-	
-	while read -r line; do
-		package="$( echo "$line" | cut -d' ' -f1 )"
-		if verifyPackageVersion; then
-			echo "${green}$package ${reset}is on the latest version"
-		else
-			echo "${red}$package ${reset}needs to be updated"
-			echo "$package" >> $outdatedPackages
-		fi
-	done < $allPackages
-
-	if [ -s "$outdatedPackages" ]; then
-		while read -r line; do
-			package=$line
-			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-			installPackage
-		done < $outdatedPackages
-		removeDependecy
+	if verifyConection; then
+		printErrorConection
 	else
-		echo ""
-		echo "there are no packages to update"
-	fi
+		allPackages="$directoryTemp/allPackages.txt"
+		outdatedPackages="$directoryTemp/outdatedPackages.txt"
+		echo -n > $allPackages
+		echo -n > $outdatedPackages
+		pacman -Qm > $allPackages
+		echo "updating the database, please wait..."
+		
+		while read -r line; do
+			package="$( echo "$line" | cut -d' ' -f1 )"
+			if verifyPackageVersion; then
+				echo "${green}$package ${reset}is on the latest version"
+			else
+				echo "${red}$package ${reset}needs to be updated"
+				echo "$package" >> $outdatedPackages
+			fi
+		done < $allPackages
 
-	rm -f "$directoryTemp/*"
+		if [ -s "$outdatedPackages" ]; then
+			while read -r line; do
+				package=$line
+				url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+				installPackage
+			done < $outdatedPackages
+			removeDependecy
+		else
+			echo ""
+			echo "there are no packages to update"
+		fi
+	fi
 }
 
 function searchPackage {
-	echo "listing similar packages..."
-	for package in $packages; do
-		url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
-		w3m -dump $url | sed -n "/^$package/p"
-		echo ""
-	done
+	if verifyConection; then
+		printErrorConection
+	else
+		echo "listing similar packages..."
+		for package in $packages; do
+			url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
+			w3m -dump $url | sed -n "/^$package/p"
+			echo ""
+		done
+	fi
 }
 
 function removePackage {

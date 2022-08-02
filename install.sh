@@ -5,7 +5,7 @@ name="aurup"
 directory="$HOME/.$name"
 
 function checkingDependencies {
-	dependencies=("bash-completion" "curl" "tar" "wget" "w3m")
+	dependencies=("bash-completion" "curl" "tar" "w3m")
 	for dependency in $dependencies; do
 		condition=$( pacman -Qs $dependency )
 		if [ "$dependency" == "" ]; then
