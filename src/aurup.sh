@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha22"
+version="1.0.0-alpha23"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -42,8 +42,8 @@ function printErrorConection {
 }
 
 function verifyConection {
-	url="https://aur.archlinux.org"
-	requestCode="$( curl -Is "$url" | head -1 )"
+	local url="https://aur.archlinux.org"
+	local requestCode="$( curl -Is "$url" | head -1 )"
 	if [[ $requestCode == *"500" ]]; then
 		return 0
 	fi
@@ -57,7 +57,7 @@ function checkPackage {
 		local hasDependency=0
 		for package in $packages; do
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-			requestCode="$( curl -Is "$url" | head -1 )"
+			local requestCode="$( curl -Is "$url" | head -1 )"
 			if [[ $requestCode == *"200"* ]]; then
 				if verifyPackageVersion; then
 					echo "${green}$package ${reset}is in the latest version"
@@ -73,7 +73,6 @@ function checkPackage {
 
 		if [ $hasDependency -eq "1" ]; then
 			removeDependecy
-			rm -f "$directoryTemp/*"
 		fi
 	fi
 }
@@ -88,8 +87,8 @@ function installPackage {
 }
 
 function verifyPackageVersion {
-	aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
-	localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
+	local aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
+	local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
 	if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
 		return 0
 	fi
@@ -100,8 +99,8 @@ function updatePackages {
 	if verifyConection; then
 		printErrorConection
 	else
-		allPackages="$directoryTemp/allPackages.txt"
-		outdatedPackages="$directoryTemp/outdatedPackages.txt"
+		local allPackages="$directoryTemp/allPackages.txt"
+		local outdatedPackages="$directoryTemp/outdatedPackages.txt"
 		echo -n > $allPackages
 		echo -n > $outdatedPackages
 		pacman -Qm > $allPackages
@@ -146,7 +145,7 @@ function searchPackage {
 
 function removePackage {
 	for package in $packages; do
-		condition=$( pacman -Q | grep $package )
+		local condition=$( pacman -Q | grep $package )
 		if [ -z "$condition" ]; then
 			echo "Package $package not exist"
 		else
