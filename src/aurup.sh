@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha23"
+version="1.0.0-alpha24"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -95,6 +95,14 @@ function verifyPackageVersion {
 	return 1
 }
 
+function verifyVersion {
+	local serverVersion="$( w3m -dump "https://github.com/wellintonvieira/$name/blob/main/src/$name.sh" | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )"
+	if [[ "$version" == "$serverVersion" ]]; then
+		return 0
+	fi
+	return 1
+}
+
 function updatePackages {
 	if verifyConection; then
 		printErrorConection
@@ -127,7 +135,23 @@ function updatePackages {
 			echo ""
 			echo "there are no packages to update"
 		fi
+		
+		if verifyVersion; then
+			echo "$name is on the latest version"
+		else
+			updateAurupPackage
+		fi
 	fi
+}
+
+function updateAurupPackage {
+	uninstallApp
+	cd /tmp/
+	echo ":: Preparing to update the $name package..."
+	git clone "https://github.com/wellintonvieira/$name.git"
+	cd $name
+	sh install.sh
+	rm -rf $name
 }
 
 function searchPackage {
