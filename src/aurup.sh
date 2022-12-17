@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha26"
+version="1.0.0-alpha27"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -113,8 +113,8 @@ function verifyUpdates {
 		echo -n > $outdatedPackages
 		pacman -Qm > $allPackages
 		echo "updating the database, please wait..."
-		updateAurupPackage
 		updatePackages
+		updateAurupPackage
 	fi
 }
 
@@ -147,11 +147,14 @@ function updateAurupPackage {
 		echo "${green}$name ${reset}is on the latest version"
 	else
 		cd /tmp/
+		if [ -d "$name" ]; then
+			rm -rf "$name"
+		fi
 		echo ":: Preparing to update the $name package..."
 		git clone "https://github.com/wellintonvieira/$name.git"
 		cd $name
 		sh install.sh
-		rm -rf $name
+		cd $HOME
 	fi
 }
 
