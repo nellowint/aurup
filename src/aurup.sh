@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha24"
+version="1.0.0-alpha25"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -103,7 +103,7 @@ function verifyVersion {
 	return 1
 }
 
-function updatePackages {
+function verifyUpdates {
 	if verifyConection; then
 		printErrorConection
 	else
@@ -113,45 +113,47 @@ function updatePackages {
 		echo -n > $outdatedPackages
 		pacman -Qm > $allPackages
 		echo "updating the database, please wait..."
-		
-		while read -r line; do
-			package="$( echo "$line" | cut -d' ' -f1 )"
-			if verifyPackageVersion; then
-				echo "${green}$package ${reset}is on the latest version"
-			else
-				echo "${red}$package ${reset}needs to be updated"
-				echo "$package" >> $outdatedPackages
-			fi
-		done < $allPackages
+		updateAurupPackage
+		updatePackages
+	fi
+}
 
-		if [ -s "$outdatedPackages" ]; then
-			while read -r line; do
-				package=$line
-				url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-				installPackage
-			done < $outdatedPackages
-			removeDependecy
+function updatePackages {
+	while read -r line; do
+		package="$( echo "$line" | cut -d' ' -f1 )"
+		if verifyPackageVersion; then
+			echo "${green}$package ${reset}is on the latest version"
 		else
-			echo ""
-			echo "there are no packages to update"
+			echo "${red}$package ${reset}needs to be updated"
+			echo "$package" >> $outdatedPackages
 		fi
-		
-		if verifyVersion; then
-			echo "$name is on the latest version"
-		else
-			updateAurupPackage
-		fi
+	done < $allPackages
+
+	if [ -s "$outdatedPackages" ]; then
+		while read -r line; do
+			package=$line
+			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+			installPackage
+		done < $outdatedPackages
+		removeDependecy
+	else
+		echo ""
+		echo "there are no packages to update"
 	fi
 }
 
 function updateAurupPackage {
-	uninstallApp
-	cd /tmp/
-	echo ":: Preparing to update the $name package..."
-	git clone "https://github.com/wellintonvieira/$name.git"
-	cd $name
-	sh install.sh
-	rm -rf $name
+	if verifyVersion; then
+		echo "${green}$name ${reset}is on the latest version"
+	else
+		uninstallApp
+		cd /tmp/
+		echo ":: Preparing to update the $name package..."
+		git clone "https://github.com/wellintonvieira/$name.git"
+		cd $name
+		sh install.sh
+		rm -rf $name	
+	fi
 }
 
 function searchPackage {
@@ -205,7 +207,7 @@ case $option in
 	"--sync"|"-S"		) [[ -z "$packages" ]] && printError || checkPackage;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && printError || removePackage;;
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && printError || searchPackage;;
-	"--update"|"-Sy"	) [[ -z "$packages" ]] && updatePackages || printError;;
+	"--update"|"-Sy"	) [[ -z "$packages" ]] && verifyUpdates || printError;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || listLocalPackages;;
 	"--help"|"-h"		) printManual;;
 	"--uninstall"|"-U"	) uninstallApp;;
