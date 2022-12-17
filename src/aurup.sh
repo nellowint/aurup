@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha27"
+version="1.0.0-alpha28"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -136,9 +136,6 @@ function updatePackages {
 			installPackage
 		done < $outdatedPackages
 		removeDependecy
-	else
-		echo ""
-		echo "there are no packages to update"
 	fi
 }
 
