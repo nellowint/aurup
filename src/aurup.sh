@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha28"
+version="1.0.0-alpha29"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -147,8 +147,9 @@ function updateAurupPackage {
 		if [ -d "$name" ]; then
 			rm -rf "$name"
 		fi
-		echo ":: Preparing to update the $name package..."
+		echo "${red}$name ${reset}needs to be updated"
 		git clone "https://github.com/wellintonvieira/$name.git"
+		echo "preparing to install the package ${green}$name${reset}"
 		cd $name
 		sh install.sh
 		cd $HOME
