@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha25"
+version="1.0.0-alpha26"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -146,13 +146,12 @@ function updateAurupPackage {
 	if verifyVersion; then
 		echo "${green}$name ${reset}is on the latest version"
 	else
-		uninstallApp
 		cd /tmp/
 		echo ":: Preparing to update the $name package..."
 		git clone "https://github.com/wellintonvieira/$name.git"
 		cd $name
 		sh install.sh
-		rm -rf $name	
+		rm -rf $name
 	fi
 }
 
