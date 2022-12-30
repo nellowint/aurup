@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha29"
+version="1.0.0-alpha30"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -38,7 +38,7 @@ function printVersion {
 }
 
 function printErrorConection {
-	echo "Sorry, Aur.archlinux.org is DOWN for everyone. Try again in a few minutes."
+	echo "sorry, aur.archlinux.org is DOWN for everyone, try again in a few minutes."
 }
 
 function verifyConection {
@@ -173,7 +173,7 @@ function removePackage {
 	for package in $packages; do
 		local condition=$( pacman -Q | grep $package )
 		if [ -z "$condition" ]; then
-			echo "Package $package not exist"
+			echo "package $package not exist"
 		else
 			sudo pacman -R "$package" --noconfirm
 		fi
