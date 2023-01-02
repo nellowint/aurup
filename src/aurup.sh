@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha30"
+version="1.0.0-alpha31"
 name="aurup"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
@@ -32,7 +32,7 @@ function printManual {
 
 function printVersion {
 	echo "$name $version"
-	echo "2019-2022 Vieirateam Developers"
+	echo "2019-2023 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
 	echo "learn more at https://github.com/wellintonvieira/$name "
 }
