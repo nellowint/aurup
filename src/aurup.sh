@@ -3,8 +3,9 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha31"
+version="1.0.0-alpha32"
 name="aurup"
+author="wellintonvieira"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
 
@@ -34,7 +35,7 @@ function printVersion {
 	echo "$name $version"
 	echo "2019-2023 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
-	echo "learn more at https://github.com/wellintonvieira/$name "
+	echo "learn more at https://github.com/$author/$name "
 }
 
 function printErrorConection {
@@ -96,8 +97,7 @@ function verifyPackageVersion {
 }
 
 function verifyVersion {
-	local serverVersion="$( w3m -dump "https://github.com/wellintonvieira/$name/blob/main/src/$name.sh" | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )"
-	if [[ "$version" == "$serverVersion" ]]; then
+	local serverVersion="$( w3m -dump "https://raw.githubusercontent.com/$author/$name/main/src/$name.sh" | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )"	if [[ "$version" == "$serverVersion" ]]; then
 		return 0
 	fi
 	return 1
@@ -148,7 +148,7 @@ function updateAurupPackage {
 			rm -rf "$name"
 		fi
 		echo "${red}$name ${reset}needs to be updated"
-		git clone "https://github.com/wellintonvieira/$name.git"
+		git clone "https://github.com/$author/$name.git"
 		echo "preparing to install the package ${green}$name${reset}"
 		cd $name
 		sh install.sh
