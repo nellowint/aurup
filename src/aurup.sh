@@ -97,7 +97,8 @@ function verifyPackageVersion {
 }
 
 function verifyVersion {
-	local serverVersion="$( w3m -dump "https://raw.githubusercontent.com/$author/$name/main/src/$name.sh" | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )"	if [[ "$version" == "$serverVersion" ]]; then
+	local serverVersion="$( w3m -dump "https://raw.githubusercontent.com/$author/$name/main/src/$name.sh" | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )"
+	if [[ "$version" == "$serverVersion" ]]; then
 		return 0
 	fi
 	return 1
