@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha32"
+version="1.0.0-alpha33"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -81,6 +81,10 @@ function checkPackage {
 function installPackage {
 	echo "preparing to install the package ${green}$package${reset}"
 	cd $directoryTemp
+	if [ -d "$package" ]; then
+		rm -rf "$package"
+		rm -rf "$package.tar.gz"
+	fi
 	curl -s -O $url
 	tar -xzf "$package.tar.gz"
 	cd "$package"
@@ -115,7 +119,7 @@ function verifyUpdates {
 		pacman -Qm > $allPackages
 		echo "updating the database, please wait..."
 		updatePackages
-		updateAurupPackage
+		updateApp
 	fi
 }
 
@@ -140,7 +144,7 @@ function updatePackages {
 	fi
 }
 
-function updateAurupPackage {
+function updateApp {
 	if verifyVersion; then
 		echo "${green}$name ${reset}is on the latest version"
 	else
