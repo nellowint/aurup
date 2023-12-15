@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha33"
+version="1.0.0-alpha34"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
