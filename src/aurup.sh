@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha34"
+version="1.0.0-alpha35"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -33,8 +33,7 @@ function printManual {
 
 function printVersion {
 	echo "$name $version"
-	echo ">>>>>>> Merry Christmas <<<<<<<"
-	echo "2019-2023...2024 Vieirateam Developers"
+	echo "2019-2024 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
 	echo "learn more at https://github.com/$author/$name "
 }
