@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha37"
+version="1.0.0-alpha38"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -14,10 +14,6 @@ red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
 
-function printError {
-	echo "invalid option, consult manual with command $name --help"
-}
-
 function printManual {
 	echo "use:  $name <operation> [...]"
 	echo "operations:"
@@ -27,6 +23,7 @@ function printManual {
 	echo "$name {-L  --list      } [package name]"
 	echo "$name {-L  --list      }"
 	echo "$name {-Sy --update    }"
+	echo "$name {-c  --clear     }"
 	echo "$name {-h  --help      }"
 	echo "$name {-U  --uninstall }"
 	echo "$name {-V  --version   }"
@@ -37,6 +34,10 @@ function printVersion {
 	echo "2019-2024 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
 	echo "learn more at https://github.com/$author/$name "
+}
+
+function printError {
+	echo "invalid option, consult manual with command $name --help"
 }
 
 function printErrorConection {
@@ -214,7 +215,7 @@ function listLocalPackages {
 
 function removeDependecy {
 	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
-	rm -rf "directoryTemp/*"
+	rm -rf "$directoryTemp/*"
 }
 
 function uninstallApp {
@@ -235,6 +236,7 @@ case $option in
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && printError || searchPackage;;
 	"--update"|"-Sy"	) [[ -z "$packages" ]] && verifyUpdates || printError;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || listLocalPackages;;
+	"--clear"|"-c"		) removeDependecy;;
 	"--help"|"-h"		) printManual;;
 	"--uninstall"|"-U"	) uninstallApp;;
 	"--version"|"-V"	) printVersion ;;
