@@ -3,11 +3,12 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha36"
+version="1.0.0-alpha37"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
+resultPackageVersion=""
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -60,13 +61,20 @@ function checkPackage {
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 			local requestCode="$( curl -Is "$url" | head -1 )"
 			if [[ $requestCode == *"200"* ]]; then
-				if verifyPackageVersion; then
-					echo "${green}$package ${reset}is in the latest version"
-					hasDependency=0
-				else
-					installPackage
-					hasDependency=1
-				fi
+				verifyPackageVersion
+				case "$resultPackageVersion" in
+					"not found")
+						echo "${red}$package ${reset}does not exist in aur repository"
+					;;
+					"updated")
+						echo "${green}$package ${reset}is in the latest version"
+						hasDependency=0
+					;;
+					"outdated")
+						installPackage
+						hasDependency=1
+					;;
+				esac
 			else
 				echo "${red}$package ${reset}does not exist in aur repository"
 			fi
@@ -94,10 +102,15 @@ function installPackage {
 function verifyPackageVersion {
 	local aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
 	local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
-	if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
-		return 0
+	if [[ -z "$aurPackageVersion" ]]; then
+		resultPackageVersion="not found"
+	else
+		if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
+			resultPackageVersion="updated"
+		else
+			resultPackageVersion="outdated"
+		fi
 	fi
-	return 1
 }
 
 function verifyVersion {
@@ -126,12 +139,19 @@ function verifyUpdates {
 function updatePackages {
 	while read -r line; do
 		package="$( echo "$line" | cut -d' ' -f1 )"
-		if verifyPackageVersion; then
-			echo "${green}$package ${reset}is on the latest version"
-		else
-			echo "${red}$package ${reset}needs to be updated"
-			echo "$package" >> $outdatedPackages
-		fi
+		verifyPackageVersion
+		case "$resultPackageVersion" in
+			"not found")
+				echo "${red}$package ${reset}does not exist in aur repository"
+			;;
+			"updated")
+				echo "${green}$package ${reset}is on the latest version"
+			;;
+			"outdated")
+				echo "${red}$package ${reset}needs to be updated"
+				echo "$package" >> $outdatedPackages
+			;;
+		esac
 	done < $allPackages
 
 	if [ -s "$outdatedPackages" ]; then
