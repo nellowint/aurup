@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha38"
+version="1.0.0-alpha39"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -57,7 +57,6 @@ function checkPackage {
 	if verifyConection; then
 		printErrorConection
 	else
-		local hasDependency=0
 		for package in $packages; do
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 			local requestCode="$( curl -Is "$url" | head -1 )"
@@ -69,21 +68,15 @@ function checkPackage {
 					;;
 					"updated")
 						echo "${green}$package ${reset}is in the latest version"
-						hasDependency=0
 					;;
 					"outdated")
 						installPackage
-						hasDependency=1
 					;;
 				esac
 			else
 				echo "${red}$package ${reset}does not exist in aur repository"
 			fi
 		done
-
-		if [ $hasDependency -eq "1" ]; then
-			removeDependecy
-		fi
 	fi
 }
 
@@ -161,7 +154,6 @@ function updatePackages {
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 			installPackage
 		done < $outdatedPackages
-		removeDependecy
 	fi
 }
 
