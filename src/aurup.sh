@@ -91,6 +91,7 @@ function installPackage {
 	tar -xzf "$package.tar.gz"
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
+	sudo pacman -R "$package-debug" --noconfirm
 }
 
 function verifyPackageVersion {
