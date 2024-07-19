@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha40"
+version="1.0.0-alpha41"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -208,7 +208,7 @@ function listLocalPackages {
 
 function removeDependecy {
 	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
-	rm -rf "$directoryTemp/*"
+	sudo rm -rf "$directoryTemp"
 }
 
 function uninstallApp {

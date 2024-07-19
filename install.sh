@@ -5,17 +5,28 @@ name="aurup"
 directory="$HOME/.$name"
 
 function checkingDependencies {
-	dependencies=("bash-completion" "curl" "tar" "w3m")
+	dependencies=("bash-completion" "curl" "cronie" "tar" "w3m")
 	for dependency in $dependencies; do
-		condition=$( pacman -Qs $dependency )
-		if [ "$dependency" == "" ]; then
-			sudo pacman -S $dependency --noconfirm
-		else
-			echo -e "checking dependencies to install $name..."
+		local condition=$( pacman -Qs $dependency )
+		if [ -z "$condition" ]; then
+			echo -e "$dependency dependency already installed."
 			sleep 1
+		else
+			echo "preparing to install the dependency $dependency"
+			sudo pacman -S $dependency --noconfirm
 		fi
 	done
-	echo "$name installed successfully"
+}
+
+function installApp {
+	mkdir $directory
+	mkdir "$directory/tmp"
+	cp "$PWD/src/$name.sh" $directory
+	chmod +x "$directory/$name.sh"
+	sudo cp "$PWD/src/$name-complete.sh" "/usr/share/bash-completion/completions/"
+	echo -e "\nalias $name='sh $directory/$name.sh'\n" >> "/$HOME/.bashrc"
+	echo -e "source /usr/share/bash-completion/completions/$name-complete.sh" >> "/$HOME/.bashrc"
+	exec bash --login
 }
 
 if [ -d $directory ]; then
@@ -24,12 +35,5 @@ if [ -d $directory ]; then
 	sed -i "/$name/d" "/$HOME/.bashrc"
 fi
 
-mkdir $directory
-mkdir "$directory/tmp"
-cp "$PWD/src/$name.sh" $directory
-chmod +x "$directory/$name.sh"
-sudo cp "$PWD/src/$name-complete.sh" "/usr/share/bash-completion/completions/"
-echo -e "\nalias $name='sh $directory/$name.sh'\n" >> "/$HOME/.bashrc"
-echo -e "source /usr/share/bash-completion/completions/$name-complete.sh" >> "/$HOME/.bashrc"
 checkingDependencies
-exec bash --login
+installApp
