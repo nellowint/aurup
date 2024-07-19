@@ -5,8 +5,9 @@ name="aurup"
 directory="$HOME/.$name"
 
 function checkingDependencies {
-	dependencies=("bash-completion" "curl" "cronie" "tar" "w3m")
+	dependencies="bash-completion curl cronie tar w3m"
 	for dependency in $dependencies; do
+		echo "checking dependencies to be installed..."
 		local condition=$( pacman -Qs $dependency )
 		if [ -z "$condition" ]; then
 			echo -e "$dependency dependency already installed."
