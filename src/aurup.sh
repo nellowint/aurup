@@ -3,12 +3,12 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha42"
+version="1.0.0-alpha43"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
-resultPackageVersion=""
+outdatedPackages="$directoryTemp/outdatedPackages.txt"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -94,20 +94,6 @@ function installPackage {
 	sudo pacman -R "$package-debug" --noconfirm
 }
 
-function verifyPackageVersion {
-	local aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
-	local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
-	if [[ -z "$aurPackageVersion" ]]; then
-		resultPackageVersion="not found"
-	else
-		if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
-			resultPackageVersion="updated"
-		else
-			resultPackageVersion="outdated"
-		fi
-	fi
-}
-
 function verifyVersion {
 	local serverVersion="$( w3m -dump "https://raw.githubusercontent.com/$author/$name/main/src/$name.sh" | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )"
 	if [[ "$version" == "$serverVersion" ]]; then
@@ -116,45 +102,22 @@ function verifyVersion {
 	return 1
 }
 
-function verifyUpdates {
+function updatePackages {
 	if verifyConection; then
 		printErrorConection
 	else
-		local allPackages="$directoryTemp/allPackages.txt"
-		local outdatedPackages="$directoryTemp/outdatedPackages.txt"
-		echo -n > $allPackages
-		echo -n > $outdatedPackages
-		pacman -Qm > $allPackages
 		echo "updating the database, please wait..."
-		updatePackages
+		if [ -s "$outdatedPackages" ]; then
+			while read -r line; do
+				package=$line
+				url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
+				installPackage
+			done < $outdatedPackages
+		else
+			echo "nothing to do, database updated..."
+		fi
 		updateApp
-	fi
-}
-
-function updatePackages {
-	while read -r line; do
-		package="$( echo "$line" | cut -d' ' -f1 )"
-		verifyPackageVersion
-		case "$resultPackageVersion" in
-			"not found")
-				echo "${red}$package ${reset}does not exist in aur repository"
-			;;
-			"updated")
-				echo "${green}$package ${reset}is on the latest version"
-			;;
-			"outdated")
-				echo "${red}$package ${reset}needs to be updated"
-				echo "$package" >> $outdatedPackages
-			;;
-		esac
-	done < $allPackages
-
-	if [ -s "$outdatedPackages" ]; then
-		while read -r line; do
-			package=$line
-			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-			installPackage
-		done < $outdatedPackages
+		echo -n > $outdatedPackages
 	fi
 }
 
@@ -227,7 +190,7 @@ case $option in
 	"--sync"|"-S"		) [[ -z "$packages" ]] && printError || checkPackage;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && printError || removePackage;;
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && printError || searchPackage;;
-	"--update"|"-Sy"	) [[ -z "$packages" ]] && verifyUpdates || printError;;
+	"--update"|"-Sy"	) [[ -z "$packages" ]] && updatePackages || printError;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || listLocalPackages;;
 	"--clear"|"-c"		) removeDependecy;;
 	"--help"|"-h"		) printManual;;

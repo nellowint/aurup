@@ -6,16 +6,11 @@ directory="$HOME/.$name"
 
 function checkingDependencies {
 	dependencies="bash-completion curl cronie tar w3m"
+	echo "checking dependencies to be installed..."
 	for dependency in $dependencies; do
-		echo "checking dependencies to be installed..."
-		local condition=$( pacman -Qs $dependency )
-		if [ -z "$condition" ]; then
-			echo -e "$dependency dependency already installed."
-			sleep 1
-		else
-			echo "preparing to install the dependency $dependency"
-			sudo pacman -S $dependency --noconfirm
-		fi
+		sleep 1
+		echo "preparing to install the dependency $dependency"
+		sudo pacman -S $dependency --noconfirm
 	done
 }
 
@@ -23,7 +18,9 @@ function installApp {
 	mkdir $directory
 	mkdir "$directory/tmp"
 	cp "$PWD/src/$name.sh" $directory
+	cp "$PWD/src/$name-background.sh" $directory
 	chmod +x "$directory/$name.sh"
+	chmod +x "$directory/$name-background.sh"
 	sudo cp "$PWD/src/$name-complete.sh" "/usr/share/bash-completion/completions/"
 	echo -e "\nalias $name='sh $directory/$name.sh'\n" >> "/$HOME/.bashrc"
 	echo -e "source /usr/share/bash-completion/completions/$name-complete.sh" >> "/$HOME/.bashrc"

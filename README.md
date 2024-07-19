@@ -5,6 +5,10 @@ Aurup is a program to facilitate the installation of Arch User Repository (AUR) 
 
 To install aurup on your computer, just run the command **chmod +x install.sh** and after running the command **sh install.sh**, if necessary run the command with sudo privileges. 
 
+## Configure Cron exec crontab -e
+```
+*/5 * * * * sh $HOME/.aurup/aurup-background.sh && date >> $HOME/.aurup/aurup.log
+```
 ##
 
 ### Main features
