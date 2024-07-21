@@ -16,6 +16,7 @@ function verifyPackageVersion {
 	local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
 	if [[ "$aurPackageVersion" != "$localPackageVersion" ]]; then
 		echo "$package" >> $outdatedPackages
+		notify-send -i software-update-available-symbolic "Aurup" "$package needs update" 
 	fi
 }
 

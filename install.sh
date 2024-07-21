@@ -5,7 +5,7 @@ name="aurup"
 directory="$HOME/.$name"
 
 function checkingDependencies {
-	dependencies="bash-completion curl cronie tar w3m"
+	dependencies="adwaita-icon-theme bash-completion curl cronie libnotify tar w3m"
 	echo "checking dependencies to be installed..."
 	for dependency in $dependencies; do
 		sleep 1
