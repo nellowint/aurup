@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha44"
+version="1.0.0-alpha45"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -61,7 +61,13 @@ function checkPackage {
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 			local requestCode="$( curl -Is "$url" | head -1 )"
 			if [[ $requestCode == *"200"* ]]; then
-				installPackage
+				local aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
+				local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
+				if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
+					echo "${green}$package ${reset}is in the latest version"
+				else
+					installPackage
+				fi
 			else
 				echo "${red}$package ${reset}does not exist in aur repository"
 			fi

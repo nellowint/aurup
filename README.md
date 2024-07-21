@@ -48,8 +48,10 @@ Check the Aurup version
 
 ### Dependencies to be installed
 
+* [adwaita-icon-theme](https://archlinux.org/packages/extra/any/adwaita-icon-theme/)
 * [bash-completion](https://archlinux.org/packages/extra/any/bash-completion/)
 * [curl](https://archlinux.org/packages/?name=curl)
 * [cronie](https://archlinux.org/packages/extra/x86_64/cronie/)
+* [libnotify](https://archlinux.org/packages/extra/x86_64/libnotify/)
 * [tar](https://archlinux.org/packages/?name=tar)
 * [w3m](https://archlinux.org/packages/extra/x86_64/w3m/)

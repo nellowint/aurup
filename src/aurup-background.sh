@@ -16,7 +16,6 @@ function verifyPackageVersion {
 	local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
 	if [[ "$aurPackageVersion" != "$localPackageVersion" ]]; then
 		echo "$package" >> $outdatedPackages
-		notify-send -i software-update-available-symbolic "Aurup" "$package needs update" 
 	fi
 }
 
@@ -24,3 +23,7 @@ while read -r line; do
 	package="$( echo "$line" | cut -d' ' -f1 )"
 	verifyPackageVersion
 done < $allPackages
+
+if [ -s "$outdatedPackages" ]; then
+	notify-send -i software-update-available-symbolic "Aurup" "There are packages to be updated"
+fi
