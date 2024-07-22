@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha45"
+version="1.0.0-alpha46"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -79,8 +79,8 @@ function installPackage {
 	echo "preparing to install the package ${green}$package${reset}"
 	cd $directoryTemp
 	if [ -d "$package" ]; then
-		rm -rf "$package"
-		rm -rf "$package.tar.gz"
+		sudo rm -rf "$package"
+		sudo rm -rf "$package.tar.gz"
 	fi
 	curl -s -O $url
 	tar -xzf "$package.tar.gz"
@@ -112,7 +112,7 @@ function updatePackages {
 			echo "nothing to do, database updated..."
 		fi
 		updateApp
-		echo -n > $outdatedPackages
+		removeDependecy
 	fi
 }
 
@@ -167,6 +167,8 @@ function listLocalPackages {
 function removeDependecy {
 	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 	sudo rm -rf "$directoryTemp"
+	mkdir "$directoryTemp"
+	echo -n > $outdatedPackages
 }
 
 function uninstallApp {

@@ -8,6 +8,7 @@ To install aurup on your computer, just run the command **chmod +x install.sh** 
 ## Configure Cron exec crontab -e
 ### The task will run every five minutes every day
 ```
+DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/1000/bus"
 */5 * * * * sh $HOME/.aurup/aurup-background.sh && date >> $HOME/.aurup/aurup.log
 ```
 ##

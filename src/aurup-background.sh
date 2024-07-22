@@ -25,5 +25,5 @@ while read -r line; do
 done < $allPackages
 
 if [ -s "$outdatedPackages" ]; then
-	notify-send -i software-update-available-symbolic "Aurup" "There are packages to be updated"
+	notify-send -t 3000 -i "/usr/share/icons/Adwaita/symbolic/status/software-update-available-symbolic.svg" "Aurup" "There are packages to be updated!"
 fi
