@@ -3,9 +3,8 @@
 
 name="aurup"
 directory="$HOME/.$name"
-directoryTemp="$directory/tmp"
-allPackages="$directoryTemp/allPackages.txt"
-outdatedPackages="$directoryTemp/outdatedPackages.txt"
+allPackages="$directory/allPackages.txt"
+outdatedPackages="$directory/outdatedPackages.txt"
 
 echo -n > $allPackages
 echo -n > $outdatedPackages

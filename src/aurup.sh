@@ -3,12 +3,12 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha46"
+version="1.0.0-alpha47"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
-outdatedPackages="$directoryTemp/outdatedPackages.txt"
+outdatedPackages="$directory/outdatedPackages.txt"
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -87,6 +87,7 @@ function installPackage {
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
 	sudo pacman -R "$package-debug" --noconfirm
+	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 }
 
 function verifyVersion {
@@ -112,7 +113,7 @@ function updatePackages {
 			echo "nothing to do, database updated..."
 		fi
 		updateApp
-		removeDependecy
+		clearCache
 	fi
 }
 
@@ -153,9 +154,10 @@ function removePackage {
 			echo "package $package not exist"
 		else
 			sudo pacman -R "$package" --noconfirm
+			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 		fi
 	done
-	removeDependecy
+	clearCache
 }
 
 function listLocalPackages {
@@ -164,9 +166,8 @@ function listLocalPackages {
 	done
 }
 
-function removeDependecy {
-	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
-	sudo rm -rf "$directoryTemp"
+function clearCache {
+	rm -rf "$directoryTemp"
 	mkdir "$directoryTemp"
 	echo -n > $outdatedPackages
 }
@@ -189,7 +190,7 @@ case $option in
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && printError || searchPackage;;
 	"--update"|"-Sy"	) [[ -z "$packages" ]] && updatePackages || printError;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || listLocalPackages;;
-	"--clear"|"-c"		) removeDependecy;;
+	"--clear"|"-c"		) clearCache;;
 	"--help"|"-h"		) printManual;;
 	"--uninstall"|"-U"	) uninstallApp;;
 	"--version"|"-V"	) printVersion ;;
