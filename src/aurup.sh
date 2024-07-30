@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha48"
+version="1.0.0-alpha49"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -45,7 +45,7 @@ function printErrorConnection {
 }
 
 function checkConnection {
-	ping www.google.com -c 1 > /dev/null 2>&1
+	ping aur.archlinux.org -c 1 > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		return 0
 	fi
@@ -54,8 +54,6 @@ function checkConnection {
 
 function checkPackage {
 	if checkConnection; then
-		printErrorConnection
-	else
 		for package in $packages; do
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
 			local requestCode="$( curl -Is "$url" | head -1 )"
@@ -71,6 +69,8 @@ function checkPackage {
 				echo "${red}$package ${reset}does not exist in aur repository"
 			fi
 		done
+	else
+		printErrorConnection
 	fi
 }
 
@@ -99,8 +99,6 @@ function verifyVersion {
 
 function updatePackages {
 	if checkConnection; then
-		printErrorConnection
-	else
 		echo "updating the database, please wait..."
 		if [ -s "$outdatedPackages" ]; then
 			while read -r line; do
@@ -113,36 +111,42 @@ function updatePackages {
 		fi
 		updateApp
 		clearCache
+	else
+		printErrorConnection
 	fi
 }
 
 function updateApp {
-	if verifyVersion; then
-		echo "${green}$name ${reset}is on the latest version"
-	else
-		cd /tmp/
-		if [ -d "$name" ]; then
-			rm -rf "$name"
+	if checkConnection; then
+		if verifyVersion; then
+			echo "${green}$name ${reset}is on the latest version"
+		else
+			cd /tmp/
+			if [ -d "$name" ]; then
+				rm -rf "$name"
+			fi
+			echo "${red}$name ${reset}needs to be updated"
+			git clone "https://github.com/$author/$name.git"
+			echo "preparing to install the package ${green}$name${reset}"
+			cd $name
+			sh install.sh
+			cd $HOME
 		fi
-		echo "${red}$name ${reset}needs to be updated"
-		git clone "https://github.com/$author/$name.git"
-		echo "preparing to install the package ${green}$name${reset}"
-		cd $name
-		sh install.sh
-		cd $HOME
+	else
+		printErrorConnection
 	fi
 }
 
 function searchPackage {
 	if checkConnection; then
-		printErrorConnection
-	else
 		echo "listing similar packages..."
 		for package in $packages; do
 			url="https://aur.archlinux.org/packages/?O=0&SeB=nd&K=$package&outdated=&SB=n&SO=a&PP=100&do_Search=Go"
 			w3m -dump $url | sed -n "/^$package/p"
 			echo ""
 		done
+	else
+		printErrorConnection
 	fi
 }
 

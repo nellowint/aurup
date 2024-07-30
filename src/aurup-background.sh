@@ -19,7 +19,7 @@ function verifyPackageVersion {
 }
 
 function checkConnection {
-	ping www.google.com -c 1 > /dev/null 2>&1
+	ping aur.archlinux.org -c 1 > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		verifyPackageVersion
 	else

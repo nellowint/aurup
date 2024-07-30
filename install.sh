@@ -5,16 +5,28 @@ name="aurup"
 directory="$HOME/.$name"
 
 function checkingDependencies {
-	dependencies="adwaita-icon-theme bash-completion curl cronie libnotify tar w3m"
-	echo "checking dependencies to be installed..."
-	for dependency in $dependencies; do
-		local condition=$( pacman -Q | grep $dependency )
-		if [ -z "$condition" ]; then
-			echo "preparing to install the dependency $dependency"
-			sudo pacman -S $dependency --noconfirm
-		fi
-		sleep 1
-	done
+	if checkConnection; then
+		dependencies="adwaita-icon-theme bash-completion curl cronie libnotify tar w3m"
+		echo "checking dependencies to be installed..."
+		for dependency in $dependencies; do
+			local condition=$( pacman -Q | grep $dependency )
+			if [ -z "$condition" ]; then
+				echo "preparing to install the dependency $dependency"
+				sudo pacman -S $dependency --noconfirm
+			fi
+			sleep 1
+		done
+	else
+		echo "unable to establish an internet connection."
+	fi
+}
+
+function checkConnection {
+	ping aur.archlinux.org -c 1 > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		return 0
+	fi
+	return 1
 }
 
 function installApp {
@@ -27,6 +39,7 @@ function installApp {
 	sudo cp "$PWD/src/$name-complete.sh" "/usr/share/bash-completion/completions/"
 	echo -e "\nalias $name='sh $directory/$name.sh'\n" >> "/$HOME/.bashrc"
 	echo -e "source /usr/share/bash-completion/completions/$name-complete.sh" >> "/$HOME/.bashrc"
+	echo "installation completed successfully."
 	exec bash --login
 }
 
