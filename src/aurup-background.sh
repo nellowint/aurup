@@ -18,9 +18,18 @@ function verifyPackageVersion {
 	fi
 }
 
+function checkConnection {
+	ping www.google.com -c 1 > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		verifyPackageVersion
+	else
+		notify-send -t 3000 -i "/usr/share/icons/Adwaita/symbolic/status/software-update-available-symbolic.svg" "Aurup" "Unable to establish an internet connection!"
+	fi
+}
+
 while read -r line; do
 	package="$( echo "$line" | cut -d' ' -f1 )"
-	verifyPackageVersion
+	checkConnection
 done < $allPackages
 
 if [ -s "$outdatedPackages" ]; then

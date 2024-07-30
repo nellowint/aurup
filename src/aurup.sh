@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha47"
+version="1.0.0-alpha48"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -40,22 +40,21 @@ function printError {
 	echo "invalid option, consult manual with command $name --help"
 }
 
-function printErrorConection {
-	echo "sorry, aur.archlinux.org is DOWN for everyone, try again in a few minutes."
+function printErrorConnection {
+	echo "unable to establish an internet connection."
 }
 
-function verifyConection {
-	local url="https://aur.archlinux.org"
-	local requestCode="$( curl -Is "$url" | head -1 )"
-	if [[ $requestCode == *"500" ]]; then
+function checkConnection {
+	ping www.google.com -c 1 > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
 		return 0
 	fi
 	return 1
 }
 
 function checkPackage {
-	if verifyConection; then
-		printErrorConection
+	if checkConnection; then
+		printErrorConnection
 	else
 		for package in $packages; do
 			url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
@@ -99,8 +98,8 @@ function verifyVersion {
 }
 
 function updatePackages {
-	if verifyConection; then
-		printErrorConection
+	if checkConnection; then
+		printErrorConnection
 	else
 		echo "updating the database, please wait..."
 		if [ -s "$outdatedPackages" ]; then
@@ -135,8 +134,8 @@ function updateApp {
 }
 
 function searchPackage {
-	if verifyConection; then
-		printErrorConection
+	if checkConnection; then
+		printErrorConnection
 	else
 		echo "listing similar packages..."
 		for package in $packages; do

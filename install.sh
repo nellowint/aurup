@@ -8,9 +8,12 @@ function checkingDependencies {
 	dependencies="adwaita-icon-theme bash-completion curl cronie libnotify tar w3m"
 	echo "checking dependencies to be installed..."
 	for dependency in $dependencies; do
+		local condition=$( pacman -Q | grep $dependency )
+		if [ -z "$condition" ]; then
+			echo "preparing to install the dependency $dependency"
+			sudo pacman -S $dependency --noconfirm
+		fi
 		sleep 1
-		echo "preparing to install the dependency $dependency"
-		sudo pacman -S $dependency --noconfirm
 	done
 }
 
