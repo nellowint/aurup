@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha51"
+version="1.0.0-alpha52"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -78,7 +78,7 @@ function checkPackage {
 function verifyPackageVersion {
 	local aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
 	local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
-	if [[ "$aurPackageVersion" != "$localPackageVersion" ]]; then
+	if [[ "$aurPackageVersion" == "$localPackageVersion" ]]; then
 		return 0
 	fi
 	return 1
