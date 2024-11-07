@@ -3,11 +3,12 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha49"
+version="1.0.0-alpha50"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
 directoryTemp="$directory/tmp"
+allPackages="$directory/allPackages.txt"
 outdatedPackages="$directory/outdatedPackages.txt"
 
 red=`tput setaf 1`
@@ -74,6 +75,15 @@ function checkPackage {
 	fi
 }
 
+function verifyPackageVersion {
+	local aurPackageVersion="$( w3m -dump "https://aur.archlinux.org/packages?O=0&SeB=N&K=$package&outdated=&SB=n&SO=a&PP=100&submit=Go" | sed -n "/^$package/p" | cut -d' ' -f2 )"
+	local localPackageVersion=$( pacman -Qm | grep $package | cut -d' ' -f2 )
+	if [[ "$aurPackageVersion" != "$localPackageVersion" ]]; then
+		return 0
+	fi
+	return 1
+}
+
 function installPackage {
 	echo "preparing to install the package ${green}$package${reset}"
 	cd $directoryTemp
@@ -100,6 +110,20 @@ function verifyVersion {
 function updatePackages {
 	if checkConnection; then
 		echo "updating the database, please wait..."
+		echo -n > $allPackages
+		echo -n > $outdatedPackages
+		pacman -Qm > $allPackages
+
+		while read -r line; do
+			package="$( echo "$line" | cut -d' ' -f1 )"
+			if verifyPackageVersion; then
+				echo "${green}$package ${reset}is on the latest version"
+			else
+				echo "${red}$package ${reset}needs to be updated"
+				echo "$package" >> $outdatedPackages
+			fi
+		done < $allPackages
+
 		if [ -s "$outdatedPackages" ]; then
 			while read -r line; do
 				package=$line

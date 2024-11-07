@@ -6,7 +6,7 @@ directory="$HOME/.$name"
 
 function checkingDependencies {
 	if checkConnection; then
-		dependencies="adwaita-icon-theme bash-completion curl cronie libnotify tar w3m"
+		dependencies="bash-completion curl tar w3m"
 		echo "checking dependencies to be installed..."
 		for dependency in $dependencies; do
 			local condition=$( pacman -Q | grep $dependency )
@@ -33,9 +33,7 @@ function installApp {
 	mkdir $directory
 	mkdir "$directory/tmp"
 	cp "$PWD/src/$name.sh" $directory
-	cp "$PWD/src/$name-background.sh" $directory
 	chmod +x "$directory/$name.sh"
-	chmod +x "$directory/$name-background.sh"
 	sudo cp "$PWD/src/$name-complete.sh" "/usr/share/bash-completion/completions/"
 	echo -e "\nalias $name='sh $directory/$name.sh'\n" >> "/$HOME/.bashrc"
 	echo -e "source /usr/share/bash-completion/completions/$name-complete.sh" >> "/$HOME/.bashrc"
