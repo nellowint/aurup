@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha50"
+version="1.0.0-alpha51"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -88,15 +88,21 @@ function installPackage {
 	echo "preparing to install the package ${green}$package${reset}"
 	cd $directoryTemp
 	if [ -d "$package" ]; then
-		sudo rm -rf "$package"
-		sudo rm -rf "$package.tar.gz"
+		rm -rf "$package"
+		rm -rf "$package.tar.gz"
 	fi
 	curl -s -O $url
 	tar -xzf "$package.tar.gz"
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
-	sudo pacman -R "$package-debug" --noconfirm
-	sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+
+	local condition=$( pacman -Q | grep "$package-debug" )
+	if [ -z "$condition" ]; then
+		echo "nothing to do..."
+	else
+		sudo pacman -R "$package-debug" --noconfirm
+		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+	fi
 }
 
 function verifyVersion {
