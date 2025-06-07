@@ -6,7 +6,7 @@ directory="$HOME/.$name"
 
 function checking_dependencies {
 	if check_connection; then
-		dependencies="bash-completion curl tar w3m"
+		dependencies="bash-completion curl jq tar"
 		echo "checking dependencies to be installed..."
 		for dependency in $dependencies; do
 			local condition=$( pacman -Q | grep $dependency )

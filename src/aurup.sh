@@ -3,7 +3,7 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha54"
+version="1.0.0-alpha55"
 name="aurup"
 author="wellintonvieira"
 directory="$HOME/.$name"
@@ -118,7 +118,7 @@ function install_package {
 }
 
 function verify_version {
-	local git_version="$( w3m -dump "https://raw.githubusercontent.com/$author/$name/main/src/$name.sh" | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )"
+	local git_version=$( curl -s https://raw.githubusercontent.com/nellowint/$name/refs/heads/main/src/$name.sh | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )
 	if [[ "$version" == "$git_version" ]]; then
 		return 0
 	fi
@@ -128,7 +128,7 @@ function verify_version {
 function update_packages {
 	if check_connection; then
 		echo -n > $remote_packages
-		echo "$BOLD$BLUE::$RESET$BOLD synchronizing the package database..."
+		echo "$BOLD$BLUE::$RESET$BOLD synchronizing the package database..."$RESET
 		
 		app_updated=1
 		delay=0.1
@@ -136,9 +136,9 @@ function update_packages {
 		pacman_loading
 		
 		if verify_version; then
-			app_updated=0
-		else
 			app_updated=1
+		else
+			app_updated=0
 		fi
 
 		delay=0.3
