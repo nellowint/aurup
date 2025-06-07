@@ -1,11 +1,26 @@
 # aurup
-## AUR Packages Installer (Unreleased)
 
-Aurup is a program to facilitate the installation of Arch User Repository (AUR) software. Developed in the Shell Script language.
+[![License](https://img.shields.io/badge/license-GNU-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Arch%20Linux%20%26%20derivatives-lightgrey.svg)]()
 
-To install aurup on your computer, just run the command **chmod +x install.sh** and after running the command **sh install.sh**, if necessary run the command with sudo privileges. 
+## Search and Install packages from AUR
 
-### Main features
+Aurup is a command-line tool (CLI) designed to simplify searching and installing packages from the AUR (Arch User Repository) on Arch Linux-based systems.
+
+## Installation
+
+### From AUR (Coming Soon)
+```bash
+yay -S aurup
+```
+### From Git
+```
+git clone https://github.com/nellowint/aurup.git
+cd aurup
+makepkg -si
+```
+
+### Features
 
 aurup {-S --sync package1 package2 package3 ... }
 Install software from AUR
@@ -37,11 +52,21 @@ Uninstall Aurup to computer
 aurup {-V --version}
 Check the Aurup version
 
-##
+## Contributing
+✨ Contributions are welcome! Please:
 
-### Dependencies to be installed
+1) Fork the repository
+2) Create a feature branch (git checkout -b feature/your-feature)
+3) Commit your changes (git commit -am 'Add some feature')
+4) Push to the branch (git push origin feature/your-feature)
+5) Open a Pull Request
 
-* [bash-completion](https://archlinux.org/packages/extra/any/bash-completion/)
+### Dependencies
+
+* [bash-completion](https://archlinux.org/packages/?name=bash-completion)
 * [curl](https://archlinux.org/packages/?name=curl)
+* [jq](https://archlinux.org/packages/?name=jq)
 * [tar](https://archlinux.org/packages/?name=tar)
-* [w3m](https://archlinux.org/packages/extra/x86_64/w3m/)
+
+# License
+This project is licensed under the GNU GENERAL PUBLIC LICENSE - see the LICENSE file for details.
