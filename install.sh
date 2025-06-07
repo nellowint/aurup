@@ -4,8 +4,8 @@
 name="aurup"
 directory="$HOME/.$name"
 
-function checkingDependencies {
-	if checkConnection; then
+function checking_dependencies {
+	if check_connection; then
 		dependencies="bash-completion curl tar w3m"
 		echo "checking dependencies to be installed..."
 		for dependency in $dependencies; do
@@ -17,19 +17,20 @@ function checkingDependencies {
 			sleep 1
 		done
 	else
-		echo "unable to establish an internet connection."
+		echo "no internet connection!"
 	fi
 }
 
-function checkConnection {
-	ping aur.archlinux.org -c 1 > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
+function check_connection {
+	local response="$( curl -s -I https://aur.archlinux.org/rpc/swagger )"
+	local status_code=$( echo $response | grep "HTTP" | cut -d " " -f 2 )
+	if [[ $status_code -eq "200" ]]; then
 		return 0
 	fi
 	return 1
 }
 
-function installApp {
+function install_app {
 	mkdir $directory
 	mkdir "$directory/tmp"
 	cp "$PWD/src/$name.sh" $directory
@@ -47,5 +48,5 @@ if [ -d $directory ]; then
 	sed -i "/$name/d" "/$HOME/.bashrc"
 fi
 
-checkingDependencies
-installApp
+checking_dependencies
+install_app
