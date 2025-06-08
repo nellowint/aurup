@@ -17,10 +17,11 @@ yay -S aurup
 ```
 git clone https://github.com/nellowint/aurup.git
 cd aurup
-makepkg -si
+sudo chmod +x install.sh
+sh install.sh
 ```
 
-### Features
+## Features
 
 aurup {-S --sync package1 package2 package3 ... }
 Install software from AUR
@@ -61,12 +62,13 @@ Check the Aurup version
 4) Push to the branch (git push origin feature/your-feature)
 5) Open a Pull Request
 
-### Dependencies
+## Dependencies
 
 * [bash-completion](https://archlinux.org/packages/?name=bash-completion)
 * [curl](https://archlinux.org/packages/?name=curl)
+* [git](https://archlinux.org/packages/?name=git)
 * [jq](https://archlinux.org/packages/?name=jq)
 * [tar](https://archlinux.org/packages/?name=tar)
 
-# License
+## License
 This project is licensed under the GNU GENERAL PUBLIC LICENSE - see the LICENSE file for details.

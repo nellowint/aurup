@@ -1,21 +1,18 @@
 #!\bin\bash
-# Maintainer: Wellinton Vieira <wellintonvieira.office@gmail.com>
-# The simplify finding and installing packages AUR helper
+#The simplify finding and installing packages AUR helper
 
 option="$1"
 packages="${@:2}"
-version="1.0.0"
+version="1.0.0-alpha56"
 name="aurup"
 author="wellintonvieira"
+git_user="nellowint"
 directory="$HOME/.$name"
 directory_temp="$directory/tmp"
 local_packages="$directory/local_packages.txt"
 remote_packages="$directory/remote_packages.txt"
 base_url="https://aur.archlinux.org/rpc/v5"
 type_application="accept: application/json"
-
-mkdir $directory
-mkdir "$directory_temp"
 
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
@@ -36,6 +33,7 @@ function print_manual {
 	echo "$name {-Sy --update    }"
 	echo "$name {-c  --clear     }"
 	echo "$name {-h  --help      }"
+	echo "$name {-U  --uninstall }"
 	echo "$name {-V  --version   }"
 }
 
@@ -120,15 +118,29 @@ function install_package {
 	fi
 }
 
+function verify_version {
+	local git_version=$( curl -s https://raw.githubusercontent.com/$git_user/$name/refs/heads/main/src/$name.sh | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )
+	if [[ "$version" == "$git_version" ]]; then
+		return 0
+	fi
+	return 1
+}
+
 function update_packages {
 	if check_connection; then
 		echo -n > $remote_packages
 		echo "$BOLD$BLUE::$RESET$BOLD synchronizing the package database..."$RESET
 		
-		package=$name
+		app_updated=1
 		delay=0.1
 		message='core'
 		pacman_loading
+		
+		if verify_version; then
+			app_updated=1
+		else
+			app_updated=0
+		fi
 
 		delay=0.3
 		has_update=0
@@ -164,6 +176,23 @@ function check_packages {
 		package="$( echo "$line" | cut -d' ' -f1 )"
 		verify_package_version
 	done < $local_packages
+}
+
+function update_app {
+	if check_connection; then
+		cd /tmp/
+		if [ -d "$name" ]; then
+			rm -rf "$name"
+		fi
+		echo "$BOLD${RED}$name ${RESET}needs to be updated"
+		git clone "https://github.com/$git_user/$name.git"
+		echo "preparing to install the package ${GREEN}$name${RESET}"
+		cd $name
+		sh install.sh
+		cd $HOME
+	else
+		print_error_connection
+	fi
 }
 
 function search_package {
@@ -225,6 +254,18 @@ function clear_cache {
 	mkdir "$directory_temp"
 }
 
+function uninstall_app {
+	if [ -d $directory ]; then
+		rm -rf "$directory"
+		sudo rm -rf "/usr/share/bash-completion/completions/$name-complete.sh"
+		sed -i "/$name/d" "/$HOME/.bashrc"
+		echo "$name was uninstalled successfully"
+		exec bash --login
+	else
+		echo "$name is not installed"
+	fi
+}
+
 function pacman_loading {
 	local current_pos=0
 	local total_dots=50
@@ -251,6 +292,7 @@ case $option in
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
 	"--clear"|"-c"		) clear_cache;;
 	"--help"|"-h"		) print_manual;;
+	"--uninstall"|"-U"	) uninstall_app;;
 	"--version"|"-V"	) print_version ;;
 	*) print_error;;
 esac
