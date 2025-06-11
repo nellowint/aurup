@@ -47,9 +47,6 @@ Clear cache and unused dependencies
 aurup {-h --help }
 See Aurup's help
 
-aurup {-U --uninstall }
-Uninstall Aurup to computer
-
 aurup {-V --version}
 Check the Aurup version
 

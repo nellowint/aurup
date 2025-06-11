@@ -1,12 +1,13 @@
 #!\bin\bash
-#The simplify finding and installing packages AUR helper
+# Maintainer: Wellinton Vieira <wellintonvieira.office@gmail.com>
+# The simplify finding and installing packages AUR helper
 
 option="$1"
 packages="${@:2}"
-version="1.0.0-alpha56"
+version="1.0.0"
 name="aurup"
-author="wellintonvieira"
-git_user="nellowint"
+author="nellowint"
+has_update=0
 directory="$HOME/.$name"
 directory_temp="$directory/tmp"
 local_packages="$directory/local_packages.txt"
@@ -33,7 +34,6 @@ function print_manual {
 	echo "$name {-Sy --update    }"
 	echo "$name {-c  --clear     }"
 	echo "$name {-h  --help      }"
-	echo "$name {-U  --uninstall }"
 	echo "$name {-V  --version   }"
 }
 
@@ -81,7 +81,7 @@ function verify_package_version {
 		local results=$( echo "$response" | jq '{Name, Description, URLPath, Version}')
 		local local_version=$( pacman -Qm | grep $package | cut -d' ' -f2 )
 		local remote_version=$( echo "${results}" | jq -r .Version)
-		url=$( echo "${results}" | jq -r .URLPath)
+		local remote_url=$( echo "${results}" | jq -r .URLPath)
 
 		if [[ "$remote_version" == "$local_version" ]]; then
 			if [[ $has_update -eq 1 ]]; then
@@ -91,6 +91,7 @@ function verify_package_version {
 			if [[ $has_update -eq 0 ]]; then
 				echo "$package" >> $remote_packages
 			else
+				url=https://aur.archlinux.org/$remote_url
 				install_package
 			fi
 		fi
@@ -104,7 +105,7 @@ function install_package {
 		rm -rf "$package"
 		rm -rf "$package.tar.gz"
 	fi
-	curl -s -O "https://aur.archlinux.org/$url"
+	curl -s -O "$url"
 	tar -xzf "$package.tar.gz"
 	cd "$package"
 	makepkg -m -c -si --needed --noconfirm
@@ -118,36 +119,24 @@ function install_package {
 	fi
 }
 
-function verify_version {
-	local git_version=$( curl -s https://raw.githubusercontent.com/$git_user/$name/refs/heads/main/src/$name.sh | grep "version" | head -n 1 | sed 's/version=//' | sed 's/ //g' | sed 's/"//g' )
-	if [[ "$version" == "$git_version" ]]; then
-		return 0
-	fi
-	return 1
-}
-
 function update_packages {
 	if check_connection; then
 		echo -n > $remote_packages
+		echo -n > $local_packages
+		pacman -Qm > $local_packages
 		echo "$BOLD$BLUE::$RESET$BOLD synchronizing the package database..."$RESET
-		
-		app_updated=1
-		delay=0.1
-		message='core'
-		pacman_loading
-		
-		if verify_version; then
-			app_updated=1
-		else
-			app_updated=0
-		fi
 
-		delay=0.3
-		has_update=0
-		message='aur '
-		pacman_loading &
-		check_packages &
-		wait
+		if [ -s "$local_packages" ]; then
+			while read -r line; do
+				package="$( echo "$line" | cut -d' ' -f1 )"
+				pacman_loading &
+				verify_package_version &
+				wait
+			done < $local_packages
+		else
+			echo "no aur packages installed"
+			return
+		fi
 		
 		echo "$BOLD$BLUE::$RESET$BOLD starting full system update...$RESET"
 		if [ -s "$remote_packages" ]; then
@@ -159,40 +148,29 @@ function update_packages {
 		else
 			echo "nothing to do"
 		fi
-
-		if [[ $app_updated -eq 0 ]]; then
-			update_app
-		fi
 		clear_cache
 	else
 		print_error_connection
 	fi
 }
 
-function check_packages {
-	echo -n > $local_packages
-	pacman -Qm > $local_packages
-	while read -r line; do
-		package="$( echo "$line" | cut -d' ' -f1 )"
-		verify_package_version
-	done < $local_packages
-}
+function pacman_loading {
+	local delay=0.01
+	local current_pos=0
+	local total_dots=50
+	local pacman_frames=('C' 'c')
+    local dots_line=$(printf "%0.s∙" $(seq 1 $total_dots))
+    
+    while [ $current_pos -le $total_dots ]; do
+        local anim_index=$((current_pos % 4))
+        local percentage=$((current_pos * 100 / total_dots))
+        local display_line="${dots_line:0:current_pos}${YELLOW}${pacman_frames[$anim_index]}${RESET}${dots_line:current_pos+1}"
 
-function update_app {
-	if check_connection; then
-		cd /tmp/
-		if [ -d "$name" ]; then
-			rm -rf "$name"
-		fi
-		echo "$BOLD${RED}$name ${RESET}needs to be updated"
-		git clone "https://github.com/$git_user/$name.git"
-		echo "preparing to install the package ${GREEN}$name${RESET}"
-		cd $name
-		sh install.sh
-		cd $HOME
-	else
-		print_error_connection
-	fi
+       	printf "\r %3d%% [ %s ] [ %s ]" "${percentage}" "${display_line}" "${package}"
+        current_pos=$((current_pos + 1))
+        sleep $delay
+    done
+    echo "$RESET"
 }
 
 function search_package {
@@ -254,36 +232,6 @@ function clear_cache {
 	mkdir "$directory_temp"
 }
 
-function uninstall_app {
-	if [ -d $directory ]; then
-		rm -rf "$directory"
-		sudo rm -rf "/usr/share/bash-completion/completions/$name-complete.sh"
-		sed -i "/$name/d" "/$HOME/.bashrc"
-		echo "$name was uninstalled successfully"
-		exec bash --login
-	else
-		echo "$name is not installed"
-	fi
-}
-
-function pacman_loading {
-	local current_pos=0
-	local total_dots=50
-	local pacman_frames=('C' 'c')
-    local dots_line=$(printf "%0.s∙" $(seq 1 $total_dots))
-    
-    while [ $current_pos -le $total_dots ]; do
-        local anim_index=$((current_pos % 4))
-        local percentage=$((current_pos * 100 / total_dots))
-        local display_line="${dots_line:0:current_pos}${YELLOW}${pacman_frames[$anim_index]}${RESET}${dots_line:current_pos+1}"
-
-        printf "\r ${message} [ ${display_line} ] [ ${percentage}%% ]"
-        current_pos=$((current_pos + 1))
-        sleep $delay
-    done
-    echo "$RESET"
-}
-
 case $option in
 	"--sync"|"-S"		) [[ -z "$packages" ]] && print_error || check_package;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_package;;
@@ -292,7 +240,6 @@ case $option in
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
 	"--clear"|"-c"		) clear_cache;;
 	"--help"|"-h"		) print_manual;;
-	"--uninstall"|"-U"	) uninstall_app;;
 	"--version"|"-V"	) print_version ;;
 	*) print_error;;
 esac
