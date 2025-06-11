@@ -3,8 +3,8 @@ _aurup_complete() {
 	COMPREPLY=()
 	cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    letters="-S -R -Ss -Sy -L -c -h -V"
-    words="--sync --remove --search --update --list --clear --help --version"
+    letters="-S -R -Ss -Sy -L -h -V"
+    words="--sync --remove --search --update --list --help --version"
 
 	case "$cur" in
 		--*) COMPREPLY=( $( compgen -W "$words" -- $cur ) );;

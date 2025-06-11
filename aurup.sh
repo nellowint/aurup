@@ -4,14 +4,12 @@
 
 option="$1"
 packages="${@:2}"
-version="1.0.0"
-name="aurup"
+pkgname="aurup"
+pkgver="1.0.0"
 author="nellowint"
 has_update=0
-directory="$HOME/.$name"
-directory_temp="$directory/tmp"
-local_packages="$directory/local_packages.txt"
-remote_packages="$directory/remote_packages.txt"
+local_packages="/tmp/local_packages.txt"
+remote_packages="/tmp/remote_packages.txt"
 base_url="https://aur.archlinux.org/rpc/v5"
 type_application="accept: application/json"
 
@@ -24,28 +22,28 @@ BOLD=$(tput bold)
 RESET=$(tput sgr0)
 
 function print_manual {
-	echo "use:  $name <operation> [...]"
+	echo "use:  $pkgname <operation> [...]"
 	echo "operations:"
-	echo "$name {-S  --sync      } [package name]"
-	echo "$name {-R  --remove    } [package name]"
-	echo "$name {-Ss --search    } [package name]"
-	echo "$name {-L  --list      } [package name]"
-	echo "$name {-L  --list      }"
-	echo "$name {-Sy --update    }"
-	echo "$name {-c  --clear     }"
-	echo "$name {-h  --help      }"
-	echo "$name {-V  --version   }"
+	echo "$pkgname {-S  --sync      } [package name]"
+	echo "$pkgname {-R  --remove    } [package name]"
+	echo "$pkgname {-Ss --search    } [package name]"
+	echo "$pkgname {-L  --list      } [package name]"
+	echo "$pkgname {-L  --list      }"
+	echo "$pkgname {-Sy --update    }"
+	echo "$pkgname {-c  --clear     }"
+	echo "$pkgname {-h  --help      }"
+	echo "$pkgname {-V  --version   }"
 }
 
 function print_version {
-	echo "$BOLD$PINK$name $RESET$BOLD$GREEN$version$RESET"
+	echo "$BOLD$PINK$pkgname $RESET$BOLD$GREEN$pkgver$RESET"
 	echo "2019-2025 Vieirateam Developers"
 	echo "this is free software: you are free to change and redistribute it."
-	echo "learn more at https://github.com/$author/$name "
+	echo "learn more at https://github.com/$author/$pkgname "
 }
 
 function print_error {
-	echo "invalid option, consult manual with command $name --help"
+	echo "invalid option, consult manual with command $pkgname --help"
 }
 
 function print_error_connection {
@@ -100,7 +98,7 @@ function verify_package_version {
 
 function install_package {
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
-	cd $directory_temp
+	cd "/tmp/"
 	if [ -d "$package" ]; then
 		rm -rf "$package"
 		rm -rf "$package.tar.gz"
@@ -148,7 +146,6 @@ function update_packages {
 		else
 			echo "nothing to do"
 		fi
-		clear_cache
 	else
 		print_error_connection
 	fi
@@ -218,7 +215,6 @@ function remove_package {
 			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 		fi
 	done
-	clear_cache
 }
 
 function list_local_packages {
@@ -227,18 +223,12 @@ function list_local_packages {
 	done
 }
 
-function clear_cache {
-	rm -rf "$directory_temp"
-	mkdir "$directory_temp"
-}
-
 case $option in
 	"--sync"|"-S"		) [[ -z "$packages" ]] && print_error || check_package;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_package;;
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && print_error || search_package;;
 	"--update"|"-Sy"	) [[ -z "$packages" ]] && update_packages || print_error;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
-	"--clear"|"-c"		) clear_cache;;
 	"--help"|"-h"		) print_manual;;
 	"--version"|"-V"	) print_version ;;
 	*) print_error;;

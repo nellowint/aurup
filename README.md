@@ -17,8 +17,7 @@ yay -S aurup
 ```
 git clone https://github.com/nellowint/aurup.git
 cd aurup
-sudo chmod +x install.sh
-sh install.sh
+makepkg -si
 ```
 
 ## Features
@@ -40,9 +39,6 @@ Check the list of installed software
 
 aurup {-L --list package1 package2 package3 ...}
 Check that the packages are installed
-
-aurup {-c --clear }
-Clear cache and unused dependencies
 
 aurup {-h --help }
 See Aurup's help
