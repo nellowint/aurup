@@ -9,7 +9,7 @@ Aurup is a command-line tool (CLI) designed to simplify searching and installing
 
 ## Installation
 
-### From AUR (Coming Soon)
+### From AUR
 ```bash
 yay -S aurup
 ```

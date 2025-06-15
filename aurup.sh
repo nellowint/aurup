@@ -5,7 +5,7 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.0.0"
+pkgver="1.70"
 author="nellowint"
 has_update=0
 local_packages="/tmp/local_packages.txt"
