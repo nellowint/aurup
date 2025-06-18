@@ -5,8 +5,9 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.70"
+pkgver="1.71"
 author="nellowint"
+name_args=""
 has_update=0
 local_packages="/tmp/local_packages.txt"
 remote_packages="/tmp/remote_packages.txt"
@@ -37,7 +38,7 @@ function print_manual {
 
 function print_version {
 	echo "$BOLD$PINK$pkgname $RESET$BOLD$GREEN$pkgver$RESET"
-	echo "2019-2025 Vieirateam Developers"
+	echo "2019-$( date +"%Y" ) VWTeam Developers"
 	echo "this is free software: you are free to change and redistribute it."
 	echo "learn more at https://github.com/$author/$pkgname "
 }
@@ -62,37 +63,51 @@ function check_connection {
 function check_package {
 	if check_connection; then
 		for package in $packages; do
-			has_update=1
-			verify_package_version
+			name_args+="arg%5B%5D=$package&"
 		done
+		has_update=1
+		name_args=$( echo "$name_args" | tr -d ' ' )
+		verify_package_version
 	else
 		print_error_connection
 	fi
 }
 
 function verify_package_version {
-	local result_count=$( curl -s -X 'GET' "$base_url/info/$package" -H "$type_application" | jq '.resultcount' )
+	local result_count=$( curl -s -X 'GET' "$base_url/info?${name_args}" -H "$type_application" | jq '.resultcount' )
 	if [[ $result_count -eq 0 ]] ; then
-		echo "$BOLD${RED}$package${RESET} does not exist in aur repository"
+		echo "no results, check the reported packages"
 	else
-		local response=$( curl -s -X 'GET' "$base_url/info/$package" -H "$type_application" | jq '.results[]' )
-		local results=$( echo "$response" | jq '{Name, Description, URLPath, Version}')
-		local local_version=$( pacman -Qm | grep $package | cut -d' ' -f2 )
-		local remote_version=$( echo "${results}" | jq -r .Version)
-		local remote_url=$( echo "${results}" | jq -r .URLPath)
+		local response=$( curl -s -X 'GET' "$base_url/info?${name_args}" -H "$type_application" | jq '.results[]' )
+		local results=$( echo "$response" | jq '{Name, URLPath, Version}')
+		
+		for row in $( echo "$results" | jq -r '@base64' ); do
+			_jq() {
+				echo ${row} | base64 --decode | jq -r ${1}
+			}
+			local remote_name=$( echo $(_jq '.Name') )
+			local remote_version=$( echo $(_jq '.Version') )
+			local remote_url=$( echo $(_jq '.URLPath') )
 
-		if [[ "$remote_version" == "$local_version" ]]; then
-			if [[ $has_update -eq 1 ]]; then
-				echo "$BOLD${GREEN}$package${RESET} is on the latest version"
-			fi
-		else
-			if [[ $has_update -eq 0 ]]; then
-				echo "$package" >> $remote_packages
-			else
-				url=https://aur.archlinux.org/$remote_url
-				install_package
-			fi
-		fi
+			for package in $packages; do
+				local local_version=$( pacman -Qm | grep $package | cut -d ' ' -f2 )
+
+				if [[ "$package" == "$remote_name" ]]; then
+					if [[ "$local_version" == "$remote_version" ]]; then
+						if [[ $has_update -eq 1 ]]; then
+							echo "$BOLD${GREEN}$package${RESET} is on the latest version"
+						fi
+					else
+						if [[ $has_update -eq 0 ]]; then
+							echo "$package" >> $remote_packages
+						else
+							url=https://aur.archlinux.org/$remote_url
+							install_package
+						fi
+					fi	
+				fi
+			done
+		done
 	fi
 }
 
@@ -119,18 +134,23 @@ function install_package {
 
 function update_packages {
 	if check_connection; then
+		has_update=0
 		echo -n > $remote_packages
 		echo -n > $local_packages
 		pacman -Qm > $local_packages
 		echo "$BOLD$BLUE::$RESET$BOLD synchronizing the package database..."$RESET
+		packages=("")
 
 		if [ -s "$local_packages" ]; then
 			while read -r line; do
-				package="$( echo "$line" | cut -d' ' -f1 )"
-				pacman_loading &
-				verify_package_version &
-				wait
+				package="$( echo "$line" | cut -d ' ' -f1 )"
+				name_args+="arg%5B%5D=$package&"
+				packages+="$package "
 			done < $local_packages
+			name_args=$( echo "$name_args" | tr -d ' ' )
+			verify_package_version &
+			pacman_loading &
+			wait
 		else
 			echo "no aur packages installed"
 			return
@@ -152,22 +172,24 @@ function update_packages {
 }
 
 function pacman_loading {
-	local delay=0.01
-	local current_pos=0
-	local total_dots=50
-	local pacman_frames=('C' 'c')
-    local dots_line=$(printf "%0.s∙" $(seq 1 $total_dots))
-    
-    while [ $current_pos -le $total_dots ]; do
-        local anim_index=$((current_pos % 4))
-        local percentage=$((current_pos * 100 / total_dots))
-        local display_line="${dots_line:0:current_pos}${YELLOW}${pacman_frames[$anim_index]}${RESET}${dots_line:current_pos+1}"
+    for package in $packages; do
+    	local delay=0.03
+		local current_pos=0
+		local total_dots=50
+		local pacman_frames=('C' 'c')
+	    local dots_line=$(printf "%0.s∙" $(seq 1 $total_dots))
 
-       	printf "\r %3d%% [ %s ] [ %s ]" "${percentage}" "${display_line}" "${package}"
-        current_pos=$((current_pos + 1))
-        sleep $delay
-    done
-    echo "$RESET"
+    	while [ $current_pos -le $total_dots ]; do
+	        local anim_index=$((current_pos % 4))
+	        local percentage=$((current_pos * 100 / total_dots))
+	        local display_line="${dots_line:0:current_pos}${YELLOW}${pacman_frames[$anim_index]}${RESET}${dots_line:current_pos+1}"
+
+	       	printf "\r %3d%% [ %s ] [ %s ]" "${percentage}" "${display_line}" "${package}"
+	        current_pos=$((current_pos + 1))
+	        sleep $delay
+	    done
+    	echo "$RESET"
+    done  
 }
 
 function search_package {
