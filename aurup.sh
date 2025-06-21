@@ -5,13 +5,13 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.71"
+pkgver="1.72"
 author="nellowint"
 name_args=""
-has_update=0
 local_packages="/tmp/local_packages.txt"
 remote_packages="/tmp/remote_packages.txt"
-base_url="https://aur.archlinux.org/rpc/v5"
+updated_packages="/tmp/updated_packages.txt"
+base_url="https://aur.archlinux.org"
 type_application="accept: application/json"
 
 RED=$(tput setaf 1)
@@ -52,7 +52,7 @@ function print_error_connection {
 }
 
 function check_connection {
-	local response="$( curl -s -I https://aur.archlinux.org/rpc/swagger )"
+	local response="$( curl -s -I $base_url/rpc/swagger )"
 	local status_code=$( echo $response | grep "HTTP" | cut -d " " -f 2 )
 	if [[ $status_code -eq "200" ]]; then
 		return 0
@@ -60,58 +60,54 @@ function check_connection {
 	return 1
 }
 
-function check_package {
+function check_packages {
 	if check_connection; then
+		echo -n > $remote_packages
 		for package in $packages; do
 			name_args+="arg%5B%5D=$package&"
 		done
-		has_update=1
 		name_args=$( echo "$name_args" | tr -d ' ' )
-		verify_package_version
+		verify_packages
+
+		if [ -s "$remote_packages" ]; then
+			while read -r line; do
+				package="$( echo "$line" | cut -d ' ' -f1 )"
+				local remote_version="$( echo "$line" | cut -d ' ' -f2 )"
+				local local_version=$( pacman -Qm | grep $package | cut -d ' ' -f2 )
+
+				if [[ "$local_version" == "$remote_version" ]]; then
+					echo "$BOLD${GREEN}$package${RESET} is on the latest version"
+				else
+					url="$base_url/cgit/aur.git/snapshot/$package.tar.gz"
+					install_packages
+				fi
+			done < $remote_packages
+		fi
 	else
 		print_error_connection
 	fi
 }
 
-function verify_package_version {
-	local result_count=$( curl -s -X 'GET' "$base_url/info?${name_args}" -H "$type_application" | jq '.resultcount' )
+function verify_packages {
+	local result_count=$( curl -s -X 'GET' "$base_url/rpc/v5/info?${name_args}" -H "$type_application" | jq '.resultcount' )
 	if [[ $result_count -eq 0 ]] ; then
 		echo "no results, check the reported packages"
 	else
-		local response=$( curl -s -X 'GET' "$base_url/info?${name_args}" -H "$type_application" | jq '.results[]' )
-		local results=$( echo "$response" | jq '{Name, URLPath, Version}')
-		
+		local response=$( curl -s -X 'GET' "$base_url/rpc/v5/info?${name_args}" -H "$type_application" | jq '.results[]' )
+		local results=$( echo "$response" | jq '{Name, Version}')
+
 		for row in $( echo "$results" | jq -r '@base64' ); do
 			_jq() {
 				echo ${row} | base64 --decode | jq -r ${1}
 			}
 			local remote_name=$( echo $(_jq '.Name') )
 			local remote_version=$( echo $(_jq '.Version') )
-			local remote_url=$( echo $(_jq '.URLPath') )
-
-			for package in $packages; do
-				local local_version=$( pacman -Qm | grep $package | cut -d ' ' -f2 )
-
-				if [[ "$package" == "$remote_name" ]]; then
-					if [[ "$local_version" == "$remote_version" ]]; then
-						if [[ $has_update -eq 1 ]]; then
-							echo "$BOLD${GREEN}$package${RESET} is on the latest version"
-						fi
-					else
-						if [[ $has_update -eq 0 ]]; then
-							echo "$package" >> $remote_packages
-						else
-							url=https://aur.archlinux.org/$remote_url
-							install_package
-						fi
-					fi	
-				fi
-			done
+			echo $remote_name $remote_version >> $remote_packages
 		done
 	fi
 }
 
-function install_package {
+function install_packages {
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
 	cd "/tmp/"
 	if [ -d "$package" ]; then
@@ -134,9 +130,9 @@ function install_package {
 
 function update_packages {
 	if check_connection; then
-		has_update=0
-		echo -n > $remote_packages
 		echo -n > $local_packages
+		echo -n > $remote_packages
+		echo -n > $updated_packages
 		pacman -Qm > $local_packages
 		echo "$BOLD$BLUE::$RESET$BOLD synchronizing the package database..."$RESET
 		packages=("")
@@ -148,21 +144,23 @@ function update_packages {
 				packages+="$package "
 			done < $local_packages
 			name_args=$( echo "$name_args" | tr -d ' ' )
-			verify_package_version &
+			verify_packages &
 			pacman_loading &
 			wait
 		else
 			echo "no aur packages installed"
 			return
 		fi
+
+		diff $local_packages $remote_packages | grep "> " | cut -d ">" -f 2 | cut -d " " -f 2 > $updated_packages
 		
 		echo "$BOLD$BLUE::$RESET$BOLD starting full system update...$RESET"
-		if [ -s "$remote_packages" ]; then
+		if [ -s "$updated_packages" ]; then
 			while read -r line; do
 				package=$line
-				url="https://aur.archlinux.org/cgit/aur.git/snapshot/$package.tar.gz"
-				install_package
-			done < $remote_packages
+				url="$base_url/cgit/aur.git/snapshot/$package.tar.gz"
+				install_packages
+			done < $updated_packages
 		else
 			echo "nothing to do"
 		fi
@@ -173,7 +171,7 @@ function update_packages {
 
 function pacman_loading {
     for package in $packages; do
-    	local delay=0.03
+    	local delay=0.003
 		local current_pos=0
 		local total_dots=50
 		local pacman_frames=('C' 'c')
@@ -192,15 +190,15 @@ function pacman_loading {
     done  
 }
 
-function search_package {
+function search_packages {
 	if check_connection; then
 		echo "searching..."
 		for package in $packages; do
-			local result_count=$( curl -s -X 'GET' "$base_url/search/$package?by=name" -H "$type_application" | jq '.resultcount' )
+			local result_count=$( curl -s -X 'GET' "$base_url/rpc/v5/search/$package?by=name" -H "$type_application" | jq '.resultcount' )
 			if [[ $result_count -eq 0 ]] ; then
 				echo "no results found"
 			else
-				local response=$( curl -s -X 'GET' "$base_url/search/$package?by=name" -H "$type_application" | jq '.results[]' )
+				local response=$( curl -s -X 'GET' "$base_url/rpc/v5/search/$package?by=name" -H "$type_application" | jq '.results[]' )
 				local results=$( echo "$response" | jq '{Maintainer, Name, Description, Version}')
 				local local_version=$( pacman -Qm | grep $package | cut -d' ' -f2 )
 					
@@ -227,7 +225,7 @@ function search_package {
 	fi
 }
 
-function remove_package {
+function remove_packages {
 	for package in $packages; do
 		local condition=$( pacman -Q | grep $package )
 		if [ -z "$condition" ]; then
@@ -246,9 +244,9 @@ function list_local_packages {
 }
 
 case $option in
-	"--sync"|"-S"		) [[ -z "$packages" ]] && print_error || check_package;;
-	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_package;;
-	"--search"|"-Ss"	) [[ -z "$packages" ]] && print_error || search_package;;
+	"--sync"|"-S"		) [[ -z "$packages" ]] && print_error || check_packages;;
+	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_packages;;
+	"--search"|"-Ss"	) [[ -z "$packages" ]] && print_error || search_packages;;
 	"--update"|"-Sy"	) [[ -z "$packages" ]] && update_packages || print_error;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
 	"--help"|"-h"		) print_manual;;

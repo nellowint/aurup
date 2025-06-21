@@ -1,13 +1,13 @@
 # Maintainer: Wellinton Vieira <wellintonvieira.office@gmail.com>
 
 pkgname="aurup"
-pkgver="1.71"
+pkgver="1.72"
 pkgrel=1
 pkgdesc="The simplify finding and installing packages AUR helper"
 arch=("x86_64")
 url="https://github.com/nellowint/$pkgname"
 license=("GNU")
-depends=("bash-completion" "curl" "jq" "tar")
+depends=("bash-completion" "curl" "diff" "jq" "tar")
 makedepends=("git")
 source=("git+https://github.com/nellowint/$pkgname.git")
 md5sums=("SKIP")

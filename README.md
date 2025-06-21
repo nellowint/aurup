@@ -59,6 +59,7 @@ Check the Aurup version
 
 * [bash-completion](https://archlinux.org/packages/?name=bash-completion)
 * [curl](https://archlinux.org/packages/?name=curl)
+* [diff](https://archlinux.org/packages/?name=diff)
 * [git](https://archlinux.org/packages/?name=git)
 * [jq](https://archlinux.org/packages/?name=jq)
 * [tar](https://archlinux.org/packages/?name=tar)
