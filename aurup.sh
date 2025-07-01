@@ -5,12 +5,13 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.72"
+pkgver="1.73"
 author="nellowint"
 name_args=""
-local_packages="/tmp/local_packages.txt"
-remote_packages="/tmp/remote_packages.txt"
-updated_packages="/tmp/updated_packages.txt"
+directory="$HOME/.$pkgname"
+local_packages="$directory/local_packages.txt"
+remote_packages="$directory/remote_packages.txt"
+updated_packages="$directory/updated_packages.txt"
 base_url="https://aur.archlinux.org"
 type_application="accept: application/json"
 
@@ -21,6 +22,8 @@ PINK=$(tput setaf 5)
 BLUE=$(tput setaf 6)
 BOLD=$(tput bold)
 RESET=$(tput sgr0)
+
+mkdir -p $directory
 
 function print_manual {
 	echo "use:  $pkgname <operation> [...]"
@@ -109,7 +112,7 @@ function verify_packages {
 
 function install_packages {
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
-	cd "/tmp/"
+	cd "$directory"
 	if [ -d "$package" ]; then
 		rm -rf "$package"
 		rm -rf "$package.tar.gz"
