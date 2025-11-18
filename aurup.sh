@@ -5,7 +5,7 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.73"
+pkgver="1.74"
 author="nellowint"
 name_args=""
 directory="$HOME/.$pkgname"
@@ -116,18 +116,19 @@ function install_packages {
 	if [ -d "$package" ]; then
 		rm -rf "$package"
 		rm -rf "$package.tar.gz"
-	fi
-	curl -s -O "$url"
-	tar -xzf "$package.tar.gz"
-	cd "$package"
-	makepkg -m -c -si --needed --noconfirm
-
-	local condition=$( pacman -Q | grep "$package-debug" )
-	if [ -z "$condition" ]; then
-		echo "nothing to do..."
 	else
-		sudo pacman -R "$package-debug" --noconfirm
-		sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+		curl -s -O "$url"
+		tar -xzf "$package.tar.gz"
+		cd "$package"
+		makepkg -m -c -si --needed --noconfirm
+		
+		local condition=$( pacman -Q | grep "$package-debug" )
+		if [ -z "$condition" ]; then
+			echo "nothing to do..."
+		else
+			sudo pacman -R "$package-debug" --noconfirm
+			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+		fi
 	fi
 }
 
