@@ -5,13 +5,14 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.74"
+pkgver="1.75"
 author="nellowint"
 name_args=""
 directory="$HOME/.$pkgname"
 local_packages="$directory/local_packages.txt"
 remote_packages="$directory/remote_packages.txt"
 updated_packages="$directory/updated_packages.txt"
+temp_directory="$directory/tmp/"
 base_url="https://aur.archlinux.org"
 type_application="accept: application/json"
 
@@ -24,6 +25,7 @@ BOLD=$(tput bold)
 RESET=$(tput sgr0)
 
 mkdir -p $directory
+mkdir -p $temp_directory
 
 function print_manual {
 	echo "use:  $pkgname <operation> [...]"
@@ -41,9 +43,9 @@ function print_manual {
 
 function print_version {
 	echo "$BOLD$PINK$pkgname $RESET$BOLD$GREEN$pkgver$RESET"
-	echo "2019-$( date +"%Y" ) VWTeam Developers"
+	echo "2019-$( date +"%Y" ) VWTech Dev - https://github.com/vwtechdev"
 	echo "this is free software: you are free to change and redistribute it."
-	echo "learn more at https://github.com/$author/$pkgname "
+	echo "learn more at https://github.com/$author/$pkgname"
 }
 
 function print_error {
@@ -112,12 +114,11 @@ function verify_packages {
 
 function install_packages {
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
-	cd "$directory"
+	cd "$temp_directory"
+
+	curl -s -O "$url"
+
 	if [ -d "$package" ]; then
-		rm -rf "$package"
-		rm -rf "$package.tar.gz"
-	else
-		curl -s -O "$url"
 		tar -xzf "$package.tar.gz"
 		cd "$package"
 		makepkg -m -c -si --needed --noconfirm
@@ -129,7 +130,15 @@ function install_packages {
 			sudo pacman -R "$package-debug" --noconfirm
 			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
 		fi
+
+		rm -rf "$package"
+		rm -rf "$package.tar.gz"
+	else
+		echo "error to install the package $BOLD${GREEN}$package${RESET}"
 	fi
+
+	cd "$directory"
+	rm -rf "$temp_directory/*"
 }
 
 function update_packages {
