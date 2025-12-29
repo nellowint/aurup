@@ -5,7 +5,7 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.75"
+pkgver="1.76"
 author="nellowint"
 name_args=""
 directory="$HOME/.$pkgname"
@@ -113,13 +113,13 @@ function verify_packages {
 }
 
 function install_packages {
-	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
 	cd "$temp_directory"
-
-	curl -s -O "$url"
-
+	echo "downloading the $BOLD${GREEN}$package${RESET} package..."
+	curl -O "$url"
+	echo "unpacking the $BOLD${GREEN}$package${RESET} package..."
+	tar -xzvf "$package.tar.gz"
+	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
 	if [ -d "$package" ]; then
-		tar -xzf "$package.tar.gz"
 		cd "$package"
 		makepkg -m -c -si --needed --noconfirm
 		
