@@ -1,11 +1,11 @@
-#!\bin\bash
+#!/bin/bash
 # Maintainer: Wellinton Vieira <wellintonvieira.office@gmail.com>
 # The simplify finding and installing packages AUR helper
 
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.76"
+pkgver="1.77"
 author="nellowint"
 name_args=""
 directory="$HOME/.$pkgname"
@@ -24,8 +24,8 @@ BLUE=$(tput setaf 6)
 BOLD=$(tput bold)
 RESET=$(tput sgr0)
 
-mkdir -p $directory
-mkdir -p $temp_directory
+mkdir -p "$directory"
+mkdir -p "$temp_directory"
 
 function print_manual {
 	echo "use:  $pkgname <operation> [...]"
@@ -54,6 +54,19 @@ function print_error {
 
 function print_error_connection {
 	echo "no internet connection!"
+}
+
+function as_root() {
+	if [[ $EUID -eq 0 ]]; then
+		"$@"
+	elif command -v sudo >/dev/null 2>&1; then
+		sudo "$@"
+	elif command -v doas >/dev/null 2>&1; then
+		doas "$@"
+	else
+		echo "error: need root privileges"
+		exit 1
+	fi
 }
 
 function check_connection {
@@ -121,24 +134,23 @@ function install_packages {
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
 	if [ -d "$package" ]; then
 		cd "$package"
-		makepkg -m -c -si --needed --noconfirm
-		
-		local condition=$( pacman -Q | grep "$package-debug" )
-		if [ -z "$condition" ]; then
-			echo "nothing to do..."
-		else
-			sudo pacman -R "$package-debug" --noconfirm
-			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+		makepkg -m -c -s --needed --noconfirm
+
+		pkgfile=$(ls *.pkg.tar.* | head -n1)
+		as_root pacman -U "$pkgfile" --noconfirm
+
+		if pacman -Q "$package-debug" >/dev/null 2>&1; then
+			as_root pacman -R "$package-debug" --noconfirm
 		fi
 
-		rm -rf "$package"
-		rm -rf "$package.tar.gz"
+		orphans=$(pacman -Qtdq || true)
+		[[ -n "$orphans" ]] && as_root pacman -Rns $orphans --noconfirm
 	else
 		echo "error to install the package $BOLD${GREEN}$package${RESET}"
 	fi
 
 	cd "$directory"
-	rm -rf "$temp_directory/*"
+	rm -rf "$temp_directory"/*
 }
 
 function update_packages {
@@ -244,8 +256,8 @@ function remove_packages {
 		if [ -z "$condition" ]; then
 			echo "package $package not exist"
 		else
-			sudo pacman -R "$package" --noconfirm
-			sudo pacman -Rns $(pacman -Qtdq) --noconfirm
+			as_root pacman -R "$package" --noconfirm
+			as_root pacman -Rns "$(pacman -Qtdq)" --noconfirm
 		fi
 	done
 }
