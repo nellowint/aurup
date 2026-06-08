@@ -5,7 +5,7 @@
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.77"
+pkgver="1.78"
 author="nellowint"
 name_args=""
 directory="$HOME/.$pkgname"
@@ -148,9 +148,7 @@ function install_packages {
 	else
 		echo "error to install the package $BOLD${GREEN}$package${RESET}"
 	fi
-
-	cd "$directory"
-	rm -rf "$temp_directory"/*
+	clear_cache
 }
 
 function update_packages {
@@ -268,12 +266,18 @@ function list_local_packages {
 	done
 }
 
+function clear_cache {
+	cd "$directory"
+	rm -rf "$temp_directory"/*
+}
+
 case $option in
 	"--sync"|"-S"		) [[ -z "$packages" ]] && print_error || check_packages;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_packages;;
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && print_error || search_packages;;
 	"--update"|"-Sy"	) [[ -z "$packages" ]] && update_packages || print_error;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
+	"--clear"|"-c"		) clear_cache ;;
 	"--help"|"-h"		) print_manual;;
 	"--version"|"-V"	) print_version ;;
 	*) print_error;;

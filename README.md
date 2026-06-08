@@ -37,6 +37,9 @@ Installed software update list
 aurup {-L --list}
 Check the list of installed software
 
+aurup {-c --clear}
+Clear cache
+
 aurup {-L --list package1 package2 package3 ...}
 Check that the packages are installed
 
