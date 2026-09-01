@@ -9,7 +9,7 @@ url="https://github.com/nellowint/$pkgname"
 license=("GPL-3.0-or-later")
 depends=("bash-completion" "curl" "diff" "jq" "tar")
 makedepends=("git")
-source=("git+https://github.com/nellowint/$pkgname.git")
+source=("git+https://github.com/nellowint/$pkgname.git#tag=v$pkgver")
 md5sums=("SKIP")
 
 package() {
