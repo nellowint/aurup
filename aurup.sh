@@ -2,6 +2,8 @@
 # Maintainer: Wellinton Vieira <wellintonvieira.office@gmail.com>
 # The simplify finding and installing packages AUR helper
 
+set -uo pipefail
+
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
@@ -81,6 +83,7 @@ function check_connection {
 function check_packages {
 	if check_connection; then
 		echo -n > $remote_packages
+		name_args=""
 		for package in $packages; do
 			name_args+="arg%5B%5D=$package&"
 		done
@@ -91,13 +94,13 @@ function check_packages {
 			while read -r line; do
 				package="$( echo "$line" | cut -d ' ' -f1 )"
 				local remote_version="$( echo "$line" | cut -d ' ' -f2 )"
-				local local_version=$( pacman -Qm | grep $package | cut -d ' ' -f2 )
+				local local_version=$( pacman -Qm | grep -w $package | cut -d ' ' -f2 )
 
 				if [[ "$local_version" == "$remote_version" ]]; then
 					echo "$BOLD${GREEN}$package${RESET} is on the latest version"
 				else
-					url="$base_url/cgit/aur.git/snapshot/$package.tar.gz"
-					install_packages
+					local url="$base_url/cgit/aur.git/snapshot/$package.tar.gz"
+					install_packages "$package" "$url"
 				fi
 			done < $remote_packages
 		fi
@@ -106,29 +109,37 @@ function check_packages {
 	fi
 }
 
+function jq_row {
+	local row="$1"
+	local field="$2"
+	echo "$row" | base64 --decode | jq -r "$field"
+}
+
 function verify_packages {
-	local result_count=$( curl -s -X 'GET' "$base_url/rpc/v5/info?${name_args}" -H "$type_application" | jq '.resultcount' )
+	local response=$( curl -s -X 'GET' "$base_url/rpc/v5/info?${name_args}" -H "$type_application" )
+	local result_count=$( echo "$response" | jq '.resultcount' )
 	if [[ $result_count -eq 0 ]] ; then
 		echo "no results, check the reported packages"
 	else
-		local response=$( curl -s -X 'GET' "$base_url/rpc/v5/info?${name_args}" -H "$type_application" | jq '.results[]' )
-		local results=$( echo "$response" | jq '{Name, Version}')
+		local results=$( echo "$response" | jq '.results[] | {Name, Version}' )
 
 		for row in $( echo "$results" | jq -r '@base64' ); do
-			_jq() {
-				echo ${row} | base64 --decode | jq -r ${1}
-			}
-			local remote_name=$( echo $(_jq '.Name') )
-			local remote_version=$( echo $(_jq '.Version') )
+			local remote_name=$( jq_row "$row" '.Name' )
+			local remote_version=$( jq_row "$row" '.Version' )
 			echo $remote_name $remote_version >> $remote_packages
 		done
 	fi
 }
 
 function install_packages {
+	local package="$1"
+	local url="$2"
 	cd "$temp_directory"
 	echo "downloading the $BOLD${GREEN}$package${RESET} package..."
-	curl -O "$url"
+	if ! curl --fail -s -O "$url"; then
+		echo "error downloading the package $BOLD${GREEN}$package${RESET}"
+		return 1
+	fi
 	echo "unpacking the $BOLD${GREEN}$package${RESET} package..."
 	tar -xzvf "$package.tar.gz"
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
@@ -136,8 +147,13 @@ function install_packages {
 		cd "$package"
 		makepkg -m -c -s --needed --noconfirm
 
-		pkgfile=$(ls *.pkg.tar.* | head -n1)
-		as_root pacman -U "$pkgfile" --noconfirm
+		local pkgfile
+		pkgfile=$(ls *.pkg.tar.* 2>/dev/null | head -n1)
+		if [ -n "$pkgfile" ]; then
+			as_root pacman -U "$pkgfile" --noconfirm
+		else
+			echo "error: no package file found for $BOLD${GREEN}$package${RESET}"
+		fi
 
 		if pacman -Q "$package-debug" >/dev/null 2>&1; then
 			as_root pacman -R "$package-debug" --noconfirm
@@ -161,6 +177,7 @@ function update_packages {
 		packages=("")
 
 		if [ -s "$local_packages" ]; then
+			name_args=""
 			while read -r line; do
 				package="$( echo "$line" | cut -d ' ' -f1 )"
 				name_args+="arg%5B%5D=$package&"
@@ -181,8 +198,8 @@ function update_packages {
 		if [ -s "$updated_packages" ]; then
 			while read -r line; do
 				package=$line
-				url="$base_url/cgit/aur.git/snapshot/$package.tar.gz"
-				install_packages
+				local url="$base_url/cgit/aur.git/snapshot/$package.tar.gz"
+				install_packages "$package" "$url"
 			done < $updated_packages
 		else
 			echo "nothing to do"
@@ -217,22 +234,19 @@ function search_packages {
 	if check_connection; then
 		echo "searching..."
 		for package in $packages; do
-			local result_count=$( curl -s -X 'GET' "$base_url/rpc/v5/search/$package?by=name" -H "$type_application" | jq '.resultcount' )
+			local response=$( curl -s -X 'GET' "$base_url/rpc/v5/search/$package?by=name" -H "$type_application" )
+			local result_count=$( echo "$response" | jq '.resultcount' )
 			if [[ $result_count -eq 0 ]] ; then
 				echo "no results found"
 			else
-				local response=$( curl -s -X 'GET' "$base_url/rpc/v5/search/$package?by=name" -H "$type_application" | jq '.results[]' )
-				local results=$( echo "$response" | jq '{Maintainer, Name, Description, Version}')
-				local local_version=$( pacman -Qm | grep $package | cut -d' ' -f2 )
+				local results=$( echo "$response" | jq '.results[] | {Maintainer, Name, Description, Version}' )
+				local local_version=$( pacman -Qm | grep -w $package | cut -d' ' -f2 )
 					
 				for row in $( echo "$results" | jq -r '@base64' ); do
-					_jq() {
-						echo ${row} | base64 --decode | jq -r ${1}
-					}
-					local maintainer=$( echo $(_jq '.Maintainer') )
-					local name=$( echo $(_jq '.Name') )
-					local remote_version=$( echo $(_jq '.Version') )
-					local description=$( echo $(_jq '.Description') )
+					local maintainer=$( jq_row "$row" '.Maintainer' )
+					local name=$( jq_row "$row" '.Name' )
+					local remote_version=$( jq_row "$row" '.Version' )
+					local description=$( jq_row "$row" '.Description' )
 
 					if [[ "$remote_version" == "$local_version" ]]; then
 						printf "%s %s" "$BOLD$PINK$maintainer/$RESET$BOLD$name" "${GREEN}$remote_version ${BLUE}[installed]"
@@ -250,12 +264,13 @@ function search_packages {
 
 function remove_packages {
 	for package in $packages; do
-		local condition=$( pacman -Q | grep $package )
+		local condition=$( pacman -Q | grep -w $package )
 		if [ -z "$condition" ]; then
 			echo "package $package not exist"
 		else
 			as_root pacman -R "$package" --noconfirm
-			as_root pacman -Rns "$(pacman -Qtdq)" --noconfirm
+			local orphans=$(pacman -Qtdq || true)
+			[[ -n "$orphans" ]] && as_root pacman -Rns $orphans --noconfirm
 		fi
 	done
 }
