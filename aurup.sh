@@ -14,7 +14,9 @@ directory="$HOME/.$pkgname"
 local_packages="$directory/local_packages.txt"
 remote_packages="$directory/remote_packages.txt"
 updated_packages="$directory/updated_packages.txt"
+package_list="$directory/package_list.txt"
 temp_directory="$directory/tmp/"
+cache_max_age=86400
 base_url="https://aur.archlinux.org"
 type_application="accept: application/json"
 
@@ -74,6 +76,28 @@ function as_root() {
 function check_connection {
 	local status_code=$( curl -s -o /dev/null -w '%{http_code}' "$base_url/rpc/swagger" )
 	[[ "$status_code" == "200" ]]
+}
+
+function update_package_list {
+	local forced="$1"
+	if [[ -z "$forced" ]] && [[ -f "$package_list" ]] &&
+	   [[ $(( $(date +%s) - $(stat -c %Y "$package_list") )) -lt "$cache_max_age" ]]; then
+		return 0
+	fi
+	if ! check_connection; then
+		[[ ! -f "$package_list" ]] && print_error_connection
+		return 1
+	fi
+	local tmp="$temp_directory/packages.gz"
+	if ! curl -s -o "$tmp" "$base_url/packages.gz"; then
+		return 1
+	fi
+	if ! gunzip -c "$tmp" > "$package_list.tmp" 2>/dev/null; then
+		rm -f "$tmp"
+		return 1
+	fi
+	mv "$package_list.tmp" "$package_list"
+	rm -f "$tmp"
 }
 
 function check_packages {
@@ -295,10 +319,10 @@ function clear_cache {
 }
 
 case $option in
-	"--sync"|"-S"		) [[ -z "$packages" ]] && print_error || check_packages;;
+	"--sync"|"-S"		) update_package_list; [[ -z "$packages" ]] && print_error || check_packages;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_packages;;
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && print_error || search_packages;;
-	"--update"|"-Sy"	) update_packages ;;
+	"--update"|"-Sy"	) update_package_list force; update_packages ;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
 	"--clear"|"-c"		) clear_cache ;;
 	"--help"|"-h"		) print_manual;;
