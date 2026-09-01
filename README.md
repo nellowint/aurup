@@ -1,6 +1,8 @@
 # aurup
 
-[![License](https://img.shields.io/badge/license-GNU-blue.svg)](LICENSE)
+[![AUR](https://img.shields.io/aur/version/aurup)](https://aur.archlinux.org/packages/aurup)
+[![AUR votes](https://img.shields.io/aur/votes/aurup)](https://aur.archlinux.org/packages/aurup)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Arch%20Linux%20%26%20derivatives-lightgrey.svg)]()
 
 ## Search and Install packages from AUR
