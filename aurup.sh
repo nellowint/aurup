@@ -45,7 +45,7 @@ function print_manual {
 
 function print_version {
 	echo "$BOLD$PINK$pkgname $RESET$BOLD$GREEN$pkgver$RESET"
-	echo "2019-$( date +"%Y" ) VWTech Dev - https://github.com/vwtechdev"
+	echo "2019-$( date +"%Y" ) VWTech Dev - https://github.com/$author/$pkgname"
 	echo "this is free software: you are free to change and redistribute it."
 	echo "learn more at https://github.com/$author/$pkgname"
 }
@@ -72,22 +72,14 @@ function as_root() {
 }
 
 function check_connection {
-	local response="$( curl -s -I $base_url/rpc/swagger )"
-	local status_code=$( echo $response | grep "HTTP" | cut -d " " -f 2 )
-	if [[ $status_code -eq "200" ]]; then
-		return 0
-	fi
-	return 1
+	local status_code=$( curl -s -o /dev/null -w '%{http_code}' "$base_url/rpc/swagger" )
+	[[ "$status_code" == "200" ]]
 }
 
 function check_packages {
 	if check_connection; then
 		echo -n > $remote_packages
-		name_args=""
-		for package in $packages; do
-			name_args+="arg%5B%5D=$package&"
-		done
-		name_args=$( echo "$name_args" | tr -d ' ' )
+		name_args=$( build_name_args $packages )
 		verify_packages
 
 		if [ -s "$remote_packages" ]; then
@@ -115,10 +107,21 @@ function jq_row {
 	echo "$row" | base64 --decode | jq -r "$field"
 }
 
+function build_name_args {
+	local result=""
+	local pkg
+	for pkg in "$@"; do
+		result+="arg%5B%5D=$pkg&"
+	done
+	echo "$result" | tr -d ' '
+}
+
 function verify_packages {
 	local response=$( curl -s -X 'GET' "$base_url/rpc/v5/info?${name_args}" -H "$type_application" )
-	local result_count=$( echo "$response" | jq '.resultcount' )
-	if [[ $result_count -eq 0 ]] ; then
+	local result_count=$( echo "$response" | jq -r '.resultcount // empty' 2>/dev/null )
+	if [[ -z "$result_count" ]]; then
+		echo "error: could not query the AUR API"
+	elif [[ $result_count -eq 0 ]] ; then
 		echo "no results, check the reported packages"
 	else
 		local results=$( echo "$response" | jq '.results[] | {Name, Version}' )
@@ -145,7 +148,11 @@ function install_packages {
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
 	if [ -d "$package" ]; then
 		cd "$package"
-		makepkg -m -c -s --needed --noconfirm
+		if ! makepkg -m -c -s --needed --noconfirm; then
+			echo "error building the package $BOLD${GREEN}$package${RESET}"
+			clear_cache
+			return 1
+		fi
 
 		local pkgfile
 		pkgfile=$(ls *.pkg.tar.* 2>/dev/null | head -n1)
@@ -159,7 +166,7 @@ function install_packages {
 			as_root pacman -R "$package-debug" --noconfirm
 		fi
 
-		orphans=$(pacman -Qtdq || true)
+		local orphans=$(pacman -Qtdq || true)
 		[[ -n "$orphans" ]] && as_root pacman -Rns $orphans --noconfirm
 	else
 		echo "error to install the package $BOLD${GREEN}$package${RESET}"
@@ -177,13 +184,13 @@ function update_packages {
 		packages=("")
 
 		if [ -s "$local_packages" ]; then
-			name_args=""
+			local installed=""
 			while read -r line; do
 				package="$( echo "$line" | cut -d ' ' -f1 )"
-				name_args+="arg%5B%5D=$package&"
-				packages+="$package "
+				installed+="$package "
 			done < $local_packages
-			name_args=$( echo "$name_args" | tr -d ' ' )
+			name_args=$( build_name_args $installed )
+			packages="$installed"
 			verify_packages &
 			pacman_loading &
 			wait
@@ -235,8 +242,10 @@ function search_packages {
 		echo "searching..."
 		for package in $packages; do
 			local response=$( curl -s -X 'GET' "$base_url/rpc/v5/search/$package?by=name" -H "$type_application" )
-			local result_count=$( echo "$response" | jq '.resultcount' )
-			if [[ $result_count -eq 0 ]] ; then
+			local result_count=$( echo "$response" | jq -r '.resultcount // empty' 2>/dev/null )
+			if [[ -z "$result_count" ]]; then
+				echo "error: could not query the AUR API"
+			elif [[ $result_count -eq 0 ]] ; then
 				echo "no results found"
 			else
 				local results=$( echo "$response" | jq '.results[] | {Maintainer, Name, Description, Version}' )
@@ -282,7 +291,6 @@ function list_local_packages {
 }
 
 function clear_cache {
-	cd "$directory"
 	rm -rf "$temp_directory"/*
 }
 
@@ -290,7 +298,7 @@ case $option in
 	"--sync"|"-S"		) [[ -z "$packages" ]] && print_error || check_packages;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_packages;;
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && print_error || search_packages;;
-	"--update"|"-Sy"	) [[ -z "$packages" ]] && update_packages || print_error;;
+	"--update"|"-Sy"	) update_packages ;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
 	"--clear"|"-c"		) clear_cache ;;
 	"--help"|"-h"		) print_manual;;
