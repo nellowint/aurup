@@ -7,7 +7,7 @@ set -uo pipefail
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.79"
+pkgver="1.80"
 author="nellowint"
 name_args=""
 directory="$HOME/.$pkgname"
@@ -225,7 +225,7 @@ function pacman_loading {
 	    local dots_line=$(printf "%0.s∙" $(seq 1 $total_dots))
 
     	while [ $current_pos -le $total_dots ]; do
-	        local anim_index=$((current_pos % 4))
+	        local anim_index=$((current_pos % ${#pacman_frames[@]}))
 	        local percentage=$((current_pos * 100 / total_dots))
 	        local display_line="${dots_line:0:current_pos}${YELLOW}${pacman_frames[$anim_index]}${RESET}${dots_line:current_pos+1}"
 
