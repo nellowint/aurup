@@ -12,6 +12,6 @@ pkgbase = aurup
 	depends = jq
 	depends = tar
 	source = git+https://github.com/nellowint/aurup.git#tag=v1.82
-	sha256sums = 0d105aa8d006588bcb693205e49805f4b026396eacdf9f50a4736dcfa2276237
+	sha256sums = 02aec4458806cc27b64232b133da50d0ad35f800c170affb74f814a5a4c11db0
 
 pkgname = aurup
