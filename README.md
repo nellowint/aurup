@@ -27,6 +27,9 @@ makepkg -si
 aurup {-S --sync package1 package2 package3 ... }
 Install software from AUR
 
+aurup {-S --sync package.tar.gz }
+Install a package from a local AUR snapshot (tar.gz with PKGBUILD) found in the current directory; falls back to the AUR API if the file is not present
+
 aurup {-R --remove package1 package2 package3 ... }
 Remove a software
 
