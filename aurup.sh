@@ -101,6 +101,21 @@ function update_package_list {
 }
 
 function check_packages {
+	local api_packages=""
+	local cwd="$PWD"
+	for package in $packages; do
+		if [[ "$package" == *.tar.gz ]] && [[ -f "$cwd/$package" ]]; then
+			install_packages "${package%.tar.gz}" "$cwd/$package"
+		else
+			api_packages+=" $package"
+		fi
+	done
+	packages="$api_packages"
+
+	if [[ -z "$packages" ]]; then
+		return 0
+	fi
+
 	if check_connection; then
 		echo -n > $remote_packages
 		name_args=$( build_name_args $packages )
@@ -135,6 +150,7 @@ function build_name_args {
 	local result=""
 	local pkg
 	for pkg in "$@"; do
+		pkg="${pkg%.tar.gz}"
 		result+="arg%5B%5D=$pkg&"
 	done
 	echo "$result" | tr -d ' '
@@ -160,17 +176,24 @@ function verify_packages {
 
 function install_packages {
 	local package="$1"
-	local url="$2"
+	local source="$2"
 	cd "$temp_directory"
 	echo "downloading the $BOLD${GREEN}$package${RESET} package..."
-	if ! curl --fail -s -O "$url"; then
-		echo "error downloading the package $BOLD${GREEN}$package${RESET}"
-		return 1
+	if [[ "$source" == http* ]]; then
+		if ! curl --fail -s -O "$source"; then
+			echo "error downloading the package $BOLD${GREEN}$package${RESET}"
+			return 1
+		fi
+	else
+		if ! cp "$source" "$package.tar.gz"; then
+			echo "error copying the package $BOLD${GREEN}$package${RESET}"
+			return 1
+		fi
 	fi
 	echo "unpacking the $BOLD${GREEN}$package${RESET} package..."
 	tar -xzvf "$package.tar.gz"
 	echo "preparing to install the package $BOLD${GREEN}$package${RESET}"
-	if [ -d "$package" ]; then
+	if [ -d "$package" ] && [ -f "$package/PKGBUILD" ]; then
 		cd "$package"
 		if ! makepkg -m -c -s --needed --noconfirm; then
 			echo "error building the package $BOLD${GREEN}$package${RESET}"
@@ -193,7 +216,7 @@ function install_packages {
 		local orphans=$(pacman -Qtdq || true)
 		[[ -n "$orphans" ]] && as_root pacman -Rns $orphans --noconfirm
 	else
-		echo "error to install the package $BOLD${GREEN}$package${RESET}"
+		echo "error: PKGBUILD not found for $BOLD${GREEN}$package${RESET}"
 	fi
 	clear_cache
 }

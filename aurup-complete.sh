@@ -18,7 +18,9 @@ _aurup_complete() {
 		-*) COMPREPLY=( $( compgen -W "$letters" -- "$cur" ) ) ;;
 		*)
 			case "$op" in
-				sync)   [[ -f "$cache" ]] && COMPREPLY=( $( awk -v p="$cur" 'index($0,p)==1' "$cache" ) ) ;;
+				sync)   COMPREPLY=( $( compgen -G "${cur}*.tar.gz" ) )
+						[[ -z "$COMPREPLY" ]] && [[ -f "$cache" ]] &&
+							COMPREPLY=( $( awk -v p="$cur" 'index($0,p)==1' "$cache" ) ) ;;
 				remove) COMPREPLY=( $( pacman -Qm 2>/dev/null | cut -d' ' -f1 | awk -v p="$cur" 'index($0,p)==1' ) ) ;;
 				*)      COMPREPLY=( $( compgen -W "$letters" -- "$cur" ) ) ;;
 			esac
