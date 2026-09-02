@@ -257,6 +257,7 @@ function pacman_loading {
 	        current_pos=$((current_pos + 1))
 	        sleep $delay
 	    done
+    	printf "\r %3d%% [ %s ] [ %s ]" "100" "$dots_line" "$package"
     	echo "$RESET"
     done  
 }
