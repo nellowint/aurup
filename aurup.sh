@@ -7,7 +7,7 @@ set -uo pipefail
 option="$1"
 packages="${@:2}"
 pkgname="aurup"
-pkgver="1.81"
+pkgver="1.82"
 author="nellowint"
 name_args=""
 directory="$HOME/.$pkgname"
