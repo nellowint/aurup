@@ -4,7 +4,7 @@
 
 set -uo pipefail
 
-option="$1"
+option="${1:-}"
 packages="${@:2}"
 pkgname="aurup"
 pkgver="1.83"
@@ -79,7 +79,7 @@ function check_connection {
 }
 
 function update_package_list {
-	local forced="$1"
+	local forced="${1:-}"
 	if [[ -z "$forced" ]] && [[ -f "$package_list" ]] &&
 	   [[ $(( $(date +%s) - $(stat -c %Y "$package_list") )) -lt "$cache_max_age" ]]; then
 		return 0
