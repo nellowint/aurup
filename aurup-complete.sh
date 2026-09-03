@@ -9,6 +9,7 @@ _aurup_complete() {
 	for (( i=1; i<COMP_CWORD; i++ )); do
 		case "${COMP_WORDS[i]}" in
 			-S|--sync) op="sync" ;;
+			-Ss|--search) op="search" ;;
 			-R|--remove) op="remove" ;;
 		esac
 	done
@@ -21,6 +22,7 @@ _aurup_complete() {
 				sync)   COMPREPLY=( $( compgen -G "${cur}*.tar.gz" ) )
 						[[ -z "$COMPREPLY" ]] && [[ -f "$cache" ]] &&
 							COMPREPLY=( $( awk -v p="$cur" 'index($0,p)==1' "$cache" ) ) ;;
+				search) [[ -f "$cache" ]] && COMPREPLY=( $( awk -v p="$cur" 'index($0,p)==1' "$cache" ) ) ;;
 				remove) COMPREPLY=( $( pacman -Qm 2>/dev/null | cut -d' ' -f1 | awk -v p="$cur" 'index($0,p)==1' ) ) ;;
 				*)      COMPREPLY=( $( compgen -W "$letters" -- "$cur" ) ) ;;
 			esac
