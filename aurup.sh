@@ -78,26 +78,36 @@ function check_connection {
 	[[ "$status_code" == "200" ]]
 }
 
+function refresh_package_list {
+	if ! check_connection; then
+		return 1
+	fi
+	local unique="$BASHPID"
+	local tmp="$temp_directory/packages.gz.$unique"
+	if ! curl -s -o "$tmp" "$base_url/packages.gz"; then
+		rm -f "$tmp"
+		return 1
+	fi
+	if ! gunzip -c "$tmp" > "$package_list.tmp.$unique" 2>/dev/null; then
+		rm -f "$tmp"
+		return 1
+	fi
+	mv "$package_list.tmp.$unique" "$package_list"
+	rm -f "$tmp"
+}
+
 function update_package_list {
 	local forced="${1:-}"
+	local background="${2:-}"
 	if [[ -z "$forced" ]] && [[ -f "$package_list" ]] &&
 	   [[ $(( $(date +%s) - $(stat -c %Y "$package_list") )) -lt "$cache_max_age" ]]; then
 		return 0
 	fi
-	if ! check_connection; then
-		[[ ! -f "$package_list" ]] && print_error_connection
-		return 1
+	if [[ -n "$background" ]]; then
+		refresh_package_list >/dev/null 2>&1 &
+		return 0
 	fi
-	local tmp="$temp_directory/packages.gz"
-	if ! curl -s -o "$tmp" "$base_url/packages.gz"; then
-		return 1
-	fi
-	if ! gunzip -c "$tmp" > "$package_list.tmp" 2>/dev/null; then
-		rm -f "$tmp"
-		return 1
-	fi
-	mv "$package_list.tmp" "$package_list"
-	rm -f "$tmp"
+	refresh_package_list
 }
 
 function check_packages {
@@ -343,10 +353,10 @@ function clear_cache {
 }
 
 case $option in
-	"--sync"|"-S"		) update_package_list; [[ -z "$packages" ]] && print_error || check_packages;;
+	"--sync"|"-S"		) update_package_list "" background; [[ -z "$packages" ]] && print_error || check_packages;;
 	"--remove"|"-R"		) [[ -z "$packages" ]] && print_error || remove_packages;;
 	"--search"|"-Ss"	) [[ -z "$packages" ]] && print_error || search_packages;;
-	"--update"|"-Sy"	) update_package_list force; update_packages ;;
+	"--update"|"-Sy"	) update_package_list force background; update_packages ;;
 	"--list"|"-L"		) [[ -z "$packages" ]] && pacman -Qm || list_local_packages;;
 	"--clear"|"-c"		) clear_cache ;;
 	"--help"|"-h"		) print_manual;;
